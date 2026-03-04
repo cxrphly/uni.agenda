@@ -4,9 +4,11 @@
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>UniAgenda - Seu Planejador Universitário</title>
+  <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <!-- Google Fonts: Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-  <style data-purpose="custom-base-styles">
+  <style>
     body {
       font-family: 'Inter', sans-serif;
       background-color: #f9fafb;
@@ -20,6 +22,7 @@
     .sidebar-transition {
       transition: transform 0.3s ease-in-out;
     }
+    /* Custom Scrollbar */
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -34,13 +37,8 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #94a3b8;
     }
-    .priority-alta { background-color: #ef4444; }
-    .priority-media { background-color: #f59e0b; }
-    .priority-baixa { background-color: #10b981; }
-    .badge-urgente { color: #ef4444; font-weight: 600; }
-    .badge-proximo { color: #f59e0b; font-weight: 600; }
-    .badge-normal { color: #6b7280; }
     
+    /* Grade de Horários */
     #grade-horarios table {
       background: white;
       border-radius: 12px;
@@ -57,6 +55,7 @@
       margin: 2px;
     }
     
+    /* Faltas */
     .faltas-bar {
       width: 100%;
       height: 8px;
@@ -93,11 +92,8 @@
       display: inline-block;
       margin-right: 6px;
     }
-    
-    .priority-alta .priority-dot { background-color: #ef4444; }
-    .priority-media .priority-dot { background-color: #f59e0b; }
-    .priority-baixa .priority-dot { background-color: #10b981; }
 
+    /* Mobile data button */
     #mobile-data-btn {
       box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
       transition: all 0.3s ease;
@@ -107,6 +103,7 @@
       transform: scale(1.1);
     }
 
+    /* Modal animation */
     #modal-import-export {
       animation: fadeIn 0.3s ease;
     }
@@ -125,7 +122,7 @@
       to { transform: translateY(0); opacity: 1; }
     }
   </style>
-  <script data-purpose="tailwind-config">
+  <script>
     tailwind.config = {
       theme: {
         extend: {
@@ -140,16 +137,16 @@
       }
     }
   </script>
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 </head>
 <body class="overflow-x-hidden">
+  <!-- BEGIN: Sidebar Desktop / Mobile Drawer -->
   <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform -translate-x-full lg:translate-x-0 sidebar-transition flex flex-col" id="sidebar">
     <div class="p-6 flex items-center justify-between">
       <h1 class="text-2xl font-bold text-primary flex items-center gap-2">
-        <span>🎓</span> Agenda
+        <span>🎓</span> UniAgenda
       </h1>
       <button class="lg:hidden text-gray-500" id="close-sidebar">
-        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
           <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
         </svg>
       </button>
@@ -184,9 +181,12 @@
     </div>
   </aside>
 
+  <!-- Overlay for Mobile Sidebar -->
   <div class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
 
+  <!-- BEGIN: Main Content Wrapper -->
   <div class="lg:ml-64 min-h-screen flex flex-col pb-20 lg:pb-0" id="main-content">
+    <!-- BEGIN: Topbar -->
     <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-4 sm:px-8 flex items-center justify-between">
       <div class="flex items-center gap-4">
         <h2 class="text-lg font-semibold text-gray-800" id="page-title">Início</h2>
@@ -197,7 +197,9 @@
     </header>
 
     <main class="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full" id="content-area">
+      <!-- BEGIN: Dashboard Section -->
       <section class="page-section space-y-8" id="page-dashboard">
+        <!-- Stats Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col">
             <span class="text-sm text-gray-500">Eventos</span>
@@ -217,7 +219,9 @@
           </div>
         </div>
 
+        <!-- 2x2 Preview Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Próximos Eventos -->
           <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <div class="flex justify-between items-center mb-4">
               <h3 class="font-bold text-gray-800">Próximos Eventos</h3>
@@ -228,6 +232,7 @@
             </ul>
           </div>
 
+          <!-- Tarefas Pendentes -->
           <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <div class="flex justify-between items-center mb-4">
               <h3 class="font-bold text-gray-800">Tarefas Pendentes</h3>
@@ -238,6 +243,7 @@
             </div>
           </div>
 
+          <!-- Aulas de Hoje -->
           <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 class="font-bold text-gray-800 mb-4">Aulas de Hoje</h3>
             <div class="space-y-4" id="dash-aulas">
@@ -245,6 +251,7 @@
             </div>
           </div>
 
+          <!-- Notas Recentes -->
           <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
             <h3 class="font-bold text-gray-800 mb-4">Notas Recentes</h3>
             <div class="grid grid-cols-2 gap-3" id="dash-notas">
@@ -254,6 +261,7 @@
         </div>
       </section>
 
+      <!-- BEGIN: Agenda Section -->
       <section class="page-section hidden space-y-6" id="page-agenda">
         <div class="flex flex-wrap gap-4 items-center justify-between">
           <div class="flex gap-2">
@@ -274,11 +282,12 @@
         </div>
       </section>
 
+      <!-- BEGIN: Horários Section -->
       <section class="page-section hidden space-y-6" id="page-horarios">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="grade-horarios">
-        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="grade-horarios"></div>
       </section>
 
+      <!-- BEGIN: Tarefas Section -->
       <section class="page-section hidden space-y-6" id="page-tarefas">
         <div class="flex flex-wrap gap-4 items-center justify-between">
           <div class="flex gap-2">
@@ -303,6 +312,7 @@
         </div>
       </section>
 
+      <!-- BEGIN: Notas Section -->
       <section class="page-section hidden space-y-6" id="page-notas">
         <div class="flex gap-4">
           <input class="flex-1 rounded-xl border-gray-200 focus:ring-primary text-sm px-4 py-2" placeholder="Buscar em notas..." type="text" id="busca-notas"/>
@@ -313,6 +323,7 @@
         </div>
       </section>
 
+      <!-- BEGIN: Matérias Section -->
       <section class="page-section hidden space-y-6" id="page-materias">
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="lista-materias">
           <div class="col-span-3 text-center text-gray-400 py-12">Nenhuma matéria cadastrada</div>
@@ -320,6 +331,7 @@
       </section>
     </main>
 
+    <!-- BEGIN: Mobile Bottom Nav -->
     <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center z-40">
       <button class="flex flex-col items-center gap-1 text-primary" data-mobile-nav="dashboard">
         <span class="text-xl">🏠</span>
@@ -348,27 +360,28 @@
     </nav>
   </div>
 
+  <!-- Botão flutuante para mobile (import/export) -->
   <div class="lg:hidden fixed bottom-20 right-4 z-50">
     <button class="bg-primary text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-indigo-700 transition-colors" id="mobile-data-btn" title="Gerenciar dados">
       💾
     </button>
   </div>
 
+  <!-- Universal Modal System -->
   <div class="fixed inset-0 z-[100] hidden items-center justify-center p-4" id="modal-container">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-backdrop"></div>
-    
     <div class="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transform transition-all" id="modal-create-item">
       <div class="p-6">
         <div class="flex justify-between items-center mb-4">
           <h3 class="text-xl font-bold text-gray-800" id="modal-create-title">Novo Item</h3>
           <button class="text-gray-400 hover:text-gray-600 text-2xl" id="modal-close">✕</button>
         </div>
-        <form class="space-y-4" id="modal-form">
-        </form>
+        <form class="space-y-4" id="modal-form"></form>
       </div>
     </div>
   </div>
 
+  <!-- Modal de Importação/Exportação para Mobile -->
   <div class="fixed inset-0 z-[100] hidden items-center justify-center p-4" id="modal-import-export">
     <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-ie-backdrop"></div>
     <div class="relative bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
@@ -390,6 +403,18 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <!-- Incluir o app.js com caminho absoluto -->
+  <script src="./app.js"></script>
+  <script>
+    // Fallback caso o app.js não carregue
+    window.addEventListener('error', function(e) {
+      if (e.target.tagName === 'SCRIPT') {
+        console.error('Erro ao carregar app.js, tentando caminho relativo...');
+        const script = document.createElement('script');
+        script.src = 'app.js';
+        document.body.appendChild(script);
+      }
+    }, true);
+  </script>
 </body>
 </html>
