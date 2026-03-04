@@ -1,14 +1,29 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-<head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>UniAgenda - Seu Planejador Universitário</title>
+  
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  
   <!-- Google Fonts: Inter -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-  <style>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#4f46e5">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="UniAgenda">
+  <meta name="application-name" content="UniAgenda">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- Ícones PWA -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="shortcut icon" href="/favicon.ico"><style>
     body {
       font-family: 'Inter', sans-serif;
       background-color: #f9fafb;
@@ -405,16 +420,38 @@
 
   <!-- Incluir o app.js com caminho absoluto -->
   <script src="./app.js"></script>
-  <script>
-    // Fallback caso o app.js não carregue
-    window.addEventListener('error', function(e) {
-      if (e.target.tagName === 'SCRIPT') {
-        console.error('Erro ao carregar app.js, tentando caminho relativo...');
-        const script = document.createElement('script');
-        script.src = 'app.js';
-        document.body.appendChild(script);
-      }
-    }, true);
-  </script>
+  <!-- Registro do Service Worker -->
+<!-- Registro do Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then(registration => {
+          console.log('✅ Service Worker registrado com sucesso');
+          
+          // Verificar se já está instalado como PWA
+          if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('✅ App rodando em modo standalone');
+          }
+        })
+        .catch(error => {
+          console.log('❌ Erro no Service Worker:', error);
+        });
+    });
+  }
+
+  // Detectar antes de instalar
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    console.log('✅ Pode ser instalado');
+    // Você pode guardar o evento e mostrar um botão personalizado
+    window.deferredPrompt = e;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    console.log('✅ PWA instalado com sucesso');
+    toast('App instalado com sucesso!');
+  });
+</script>
 </body>
 </html>
