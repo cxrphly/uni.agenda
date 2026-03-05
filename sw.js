@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uniagenda-v4';
+const CACHE_NAME = 'uniagenda-v5';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -19,6 +19,7 @@ const urlsToCache = [
   'https://em-content.zobj.net/source/animated-noto-color-emoji/427/graduation-cap_1f393.gif'
 ];
 
+// Instalação
 self.addEventListener('install', event => {
   self.skipWaiting();
   event.waitUntil(
@@ -26,6 +27,7 @@ self.addEventListener('install', event => {
   );
 });
 
+// Ativação
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => 
@@ -34,6 +36,7 @@ self.addEventListener('activate', event => {
   );
 });
 
+// Interceptar requisições
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
@@ -47,4 +50,70 @@ self.addEventListener('fetch', event => {
       })
     )
   );
+});
+
+// =============================================
+// NOTIFICAÇÕES
+// =============================================
+
+// Receber push notification do servidor
+self.addEventListener('push', event => {
+  console.log('Push recebido:', event);
+  
+  let data = {
+    title: 'UniAgenda',
+    body: 'Você tem um lembrete!',
+    icon: '/maskable_icon_x192.png',
+    badge: '/favicon-32x32.png',
+    vibrate: [200, 100, 200],
+    data: {
+      url: '/',
+      dateOfArrival: Date.now()
+    },
+    actions: [
+      { action: 'open', title: 'Abrir' },
+      { action: 'close', title: 'Fechar' }
+    ]
+  };
+
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      data = { ...data, ...payload };
+    } catch (e) {
+      data.body = event.data.text();
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, data)
+  );
+});
+
+// Clique na notificação
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+
+  if (event.action === 'close') return;
+
+  const urlToOpen = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(windowClients => {
+        // Verificar se já existe uma janela aberta
+        for (let client of windowClients) {
+          if (client.url === urlToOpen && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        // Se não existir, abrir nova
+        return clients.openWindow(urlToOpen);
+      })
+  );
+});
+
+// Notificação fechada sem clique
+self.addEventListener('notificationclose', event => {
+  console.log('Notificação fechada:', event.notification);
 });

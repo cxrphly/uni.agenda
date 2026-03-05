@@ -11,6 +11,10 @@ let DB = {
 let paginaAtual = 'dashboard';
 let itemEditandoId = null;
 
+// Estado das notificações
+let notificationPermission = false;
+let notificationTimers = {};
+
 const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
 const $ = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
@@ -270,6 +274,7 @@ function renderAgenda() {
         <h4 class="font-bold">${e.titulo}</h4>
         <p class="text-sm text-gray-500">${getMateriaNome(e.materiaId)} · ${e.hora || '--:--'}</p>
         ${e.descricao ? `<p class="text-xs text-gray-400">${e.descricao}</p>` : ''}
+        ${e.notificar ? `<span class="inline-block mt-1 text-xs text-indigo-600">🔔 Lembrete ${e.notificarMinutos}min antes</span>` : ''}
       </div>
       <button class="text-red-500 hover:text-red-700" onclick="excluirEvento('${e.id}')">🗑️</button>
     </div>
@@ -324,6 +329,7 @@ function renderTarefas() {
             <div class="flex items-center gap-2 mt-1">
               <span class="text-xs text-gray-500">📚 ${getMateriaNome(t.materiaId)}</span>
               ${t.prazo ? `<span class="text-xs text-gray-500">📅 ${formatarDataCurta(t.prazo)}</span>` : ''}
+              ${t.notificar ? `<span class="text-xs text-indigo-600">🔔 Lembrete ${t.notificarMinutos}min antes</span>` : ''}
             </div>
           </div>
         </div>
@@ -665,6 +671,29 @@ function abrirModalEvento(evento = null) {
       <textarea class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
                 id="evDesc" rows="3">${evento?.descricao || ''}</textarea>
     </div>
+    
+    <!-- Seção de Notificação -->
+    <div class="border-t border-gray-200 pt-4 mt-4">
+      <h4 class="font-semibold text-gray-700 mb-2">⏰ Lembrete</h4>
+      <div class="flex items-center gap-3 mb-3">
+        <input type="checkbox" id="evNotificar" class="w-5 h-5 rounded text-primary" ${evento?.notificar ? 'checked' : ''}>
+        <label for="evNotificar" class="text-sm text-gray-700">Ativar lembrete</label>
+      </div>
+      <div id="evOpcoesLembrete" class="space-y-3 ${evento?.notificar ? '' : 'hidden'}">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Notificar</label>
+          <select class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" id="evNotificarMinutos">
+            <option value="5" ${evento?.notificarMinutos === 5 ? 'selected' : ''}>5 minutos antes</option>
+            <option value="15" ${evento?.notificarMinutos === 15 ? 'selected' : ''}>15 minutos antes</option>
+            <option value="30" ${evento?.notificarMinutos === 30 ? 'selected' : ''}>30 minutos antes</option>
+            <option value="60" ${evento?.notificarMinutos === 60 ? 'selected' : ''}>1 hora antes</option>
+            <option value="120" ${evento?.notificarMinutos === 120 ? 'selected' : ''}>2 horas antes</option>
+            <option value="1440" ${evento?.notificarMinutos === 1440 ? 'selected' : ''}>1 dia antes</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
     <button type="button" class="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 mt-4" 
             onclick="salvarEvento()">
       ${evento ? 'Atualizar' : 'Salvar'}
@@ -672,6 +701,19 @@ function abrirModalEvento(evento = null) {
   `;
   
   abrirModal(evento ? 'Editar Evento' : 'Novo Evento', conteudo);
+  
+  // Adicionar evento para mostrar/esconder opções de lembrete
+  setTimeout(() => {
+    const evNotificar = $('#evNotificar');
+    if (evNotificar) {
+      evNotificar.addEventListener('change', function(e) {
+        const opcoes = $('#evOpcoesLembrete');
+        if (opcoes) {
+          opcoes.classList.toggle('hidden', !e.target.checked);
+        }
+      });
+    }
+  }, 100);
 }
 
 function salvarEvento() {
@@ -683,6 +725,9 @@ function salvarEvento() {
     return;
   }
 
+  const notificar = $('#evNotificar')?.checked || false;
+  const notificarMinutos = notificar ? parseInt($('#evNotificarMinutos')?.value || 30) : null;
+
   const evento = {
     id: itemEditandoId || uid(),
     titulo,
@@ -691,8 +736,15 @@ function salvarEvento() {
     data,
     hora: $('#evHora').value,
     descricao: $('#evDesc').value.trim(),
-    concluido: false
+    concluido: false,
+    notificar: notificar,
+    notificarMinutos: notificarMinutos
   };
+
+  // Cancelar notificação antiga se estiver editando
+  if (itemEditandoId) {
+    cancelarNotificacao(itemEditandoId, 'evento');
+  }
 
   if (itemEditandoId) {
     const idx = DB.eventos.findIndex(e => e.id === itemEditandoId);
@@ -702,6 +754,12 @@ function salvarEvento() {
   }
 
   salvarDB();
+  
+  // Agendar nova notificação
+  if (notificar && notificarMinutos) {
+    agendarNotificacaoEvento(evento, notificarMinutos);
+  }
+  
   fecharModal();
   renderAgenda();
   renderDashboard();
@@ -753,6 +811,28 @@ function abrirModalTarefa(tarefa = null) {
       <input type="date" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
              id="taPrazo" value="${tarefa?.prazo || ''}">
     </div>
+    
+    <!-- Seção de Notificação -->
+    <div class="border-t border-gray-200 pt-4 mt-4">
+      <h4 class="font-semibold text-gray-700 mb-2">⏰ Lembrete</h4>
+      <div class="flex items-center gap-3 mb-3">
+        <input type="checkbox" id="taNotificar" class="w-5 h-5 rounded text-primary" ${tarefa?.notificar ? 'checked' : ''}>
+        <label for="taNotificar" class="text-sm text-gray-700">Ativar lembrete</label>
+      </div>
+      <div id="taOpcoesLembrete" class="space-y-3 ${tarefa?.notificar ? '' : 'hidden'}">
+        <div>
+          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Notificar</label>
+          <select class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" id="taNotificarMinutos">
+            <option value="60" ${tarefa?.notificarMinutos === 60 ? 'selected' : ''}>1 hora antes</option>
+            <option value="120" ${tarefa?.notificarMinutos === 120 ? 'selected' : ''}>2 horas antes</option>
+            <option value="240" ${tarefa?.notificarMinutos === 240 ? 'selected' : ''}>4 horas antes</option>
+            <option value="1440" ${tarefa?.notificarMinutos === 1440 ? 'selected' : ''}>1 dia antes</option>
+            <option value="2880" ${tarefa?.notificarMinutos === 2880 ? 'selected' : ''}>2 dias antes</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
     <button type="button" class="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 mt-4" 
             onclick="salvarTarefa()">
       ${tarefa ? 'Atualizar' : 'Salvar'}
@@ -760,6 +840,19 @@ function abrirModalTarefa(tarefa = null) {
   `;
   
   abrirModal(tarefa ? 'Editar Tarefa' : 'Nova Tarefa', conteudo);
+  
+  // Adicionar evento para mostrar/esconder opções de lembrete
+  setTimeout(() => {
+    const taNotificar = $('#taNotificar');
+    if (taNotificar) {
+      taNotificar.addEventListener('change', function(e) {
+        const opcoes = $('#taOpcoesLembrete');
+        if (opcoes) {
+          opcoes.classList.toggle('hidden', !e.target.checked);
+        }
+      });
+    }
+  }, 100);
 }
 
 function salvarTarefa() {
@@ -771,6 +864,9 @@ function salvarTarefa() {
 
   const prioridadeRadio = $('input[name="prioridade"]:checked');
   const prioridade = prioridadeRadio ? prioridadeRadio.value : 'media';
+  
+  const notificar = $('#taNotificar')?.checked || false;
+  const notificarMinutos = notificar ? parseInt($('#taNotificarMinutos')?.value || 60) : null;
 
   const tarefa = {
     id: itemEditandoId || uid(),
@@ -778,8 +874,15 @@ function salvarTarefa() {
     prioridade,
     materiaId: $('#taMateria').value,
     prazo: $('#taPrazo').value,
-    concluida: false
+    concluida: false,
+    notificar: notificar,
+    notificarMinutos: notificarMinutos
   };
+
+  // Cancelar notificação antiga se estiver editando
+  if (itemEditandoId) {
+    cancelarNotificacao(itemEditandoId, 'tarefa');
+  }
 
   if (itemEditandoId) {
     const idx = DB.tarefas.findIndex(t => t.id === itemEditandoId);
@@ -789,6 +892,12 @@ function salvarTarefa() {
   }
 
   salvarDB();
+  
+  // Agendar nova notificação
+  if (notificar && notificarMinutos && tarefa.prazo) {
+    agendarNotificacaoTarefa(tarefa, notificarMinutos);
+  }
+  
   fecharModal();
   renderTarefas();
   renderDashboard();
@@ -979,6 +1088,8 @@ function toggleTarefa(id) {
 
 function excluirEvento(id) {
   if (confirm('Excluir este evento?')) {
+    // Cancelar notificação antes de excluir
+    cancelarNotificacao(id, 'evento');
     DB.eventos = DB.eventos.filter(e => e.id !== id);
     salvarDB();
     renderAgenda();
@@ -989,6 +1100,8 @@ function excluirEvento(id) {
 
 function excluirTarefa(id) {
   if (confirm('Excluir esta tarefa?')) {
+    // Cancelar notificação antes de excluir
+    cancelarNotificacao(id, 'tarefa');
     DB.tarefas = DB.tarefas.filter(t => t.id !== id);
     salvarDB();
     renderTarefas();
@@ -1132,6 +1245,223 @@ function exportarArquivo() {
   fecharModalImportExport();
 }
 
+// =============================================
+// FUNÇÕES DE NOTIFICAÇÃO
+// =============================================
+
+// Solicitar permissão para notificações
+async function solicitarPermissaoNotificacoes() {
+  if (!('Notification' in window)) {
+    console.log('Este navegador não suporta notificações');
+    return false;
+  }
+
+  if (Notification.permission === 'granted') {
+    notificationPermission = true;
+    return true;
+  }
+
+  if (Notification.permission !== 'denied') {
+    const permission = await Notification.requestPermission();
+    notificationPermission = permission === 'granted';
+    return notificationPermission;
+  }
+
+  return false;
+}
+
+// Verificar permissão de notificações
+function verificarPermissaoNotificacoes() {
+  if (!('Notification' in window)) return false;
+  return Notification.permission === 'granted';
+}
+
+// Mostrar notificação imediata
+function mostrarNotificacao(titulo, options = {}) {
+  if (!verificarPermissaoNotificacoes()) {
+    console.log('Sem permissão para notificações');
+    return false;
+  }
+
+  const defaultOptions = {
+    body: '',
+    icon: '/maskable_icon_x192.png',
+    badge: '/favicon-32x32.png',
+    vibrate: [200, 100, 200],
+    data: {
+      url: '/',
+      dateOfArrival: Date.now()
+    },
+    requireInteraction: false,
+    silent: false
+  };
+
+  const notificacao = new Notification(titulo, { ...defaultOptions, ...options });
+  
+  notificacao.onclick = function(event) {
+    event.preventDefault();
+    window.focus();
+    if (options.onClick) options.onClick();
+  };
+
+  return true;
+}
+
+// Agendar notificação para um evento
+function agendarNotificacaoEvento(evento, minutosAntes = 30) {
+  if (!evento || !evento.data || !evento.titulo) return null;
+  if (!verificarPermissaoNotificacoes()) return null;
+  
+  const dataEvento = new Date(`${evento.data}T${evento.hora || '00:00'}`);
+  const dataNotificacao = new Date(dataEvento.getTime() - (minutosAntes * 60 * 1000));
+  
+  // Se já passou, não agenda
+  if (dataNotificacao <= new Date()) return null;
+  
+  const tempoMs = dataNotificacao.getTime() - Date.now();
+  
+  const timerId = setTimeout(() => {
+    const tipoTexto = {
+      prova: '📝 Prova',
+      trabalho: '📋 Trabalho',
+      aula: '🎓 Aula',
+      outro: '📌 Evento'
+    }[evento.tipo] || '📌 Evento';
+    
+    mostrarNotificacao(`🔔 ${tipoTexto}: ${evento.titulo}`, {
+      body: `Começa em ${minutosAntes} minutos!\n📅 ${formatarDataCurta(evento.data)} ${evento.hora ? `às ${evento.hora}` : ''}`,
+      data: {
+        url: '/?page=agenda',
+        id: evento.id,
+        type: 'evento'
+      },
+      tag: `evento-${evento.id}`,
+      requireInteraction: true,
+      onClick: () => navigateTo('agenda')
+    });
+    
+    // Remover da lista de timers
+    delete notificationTimers[`evento-${evento.id}`];
+  }, tempoMs);
+  
+  notificationTimers[`evento-${evento.id}`] = timerId;
+  return timerId;
+}
+
+// Agendar notificação para uma tarefa
+function agendarNotificacaoTarefa(tarefa, minutosAntes = 60) {
+  if (!tarefa || !tarefa.prazo || !tarefa.titulo) return null;
+  if (!verificarPermissaoNotificacoes()) return null;
+  
+  const dataPrazo = new Date(`${tarefa.prazo}T23:59:59`);
+  const dataNotificacao = new Date(dataPrazo.getTime() - (minutosAntes * 60 * 1000));
+  
+  // Se já passou, não agenda
+  if (dataNotificacao <= new Date()) return null;
+  
+  const tempoMs = dataNotificacao.getTime() - Date.now();
+  
+  const timerId = setTimeout(() => {
+    const prioridadeTexto = {
+      alta: '🔴 Alta Prioridade',
+      media: '🟡 Média Prioridade',
+      baixa: '🟢 Baixa Prioridade'
+    }[tarefa.prioridade] || '';
+    
+    mostrarNotificacao(`✅ Tarefa: ${tarefa.titulo}`, {
+      body: `Vence em ${minutosAntes} minutos!\n${prioridadeTexto}\n📚 ${getMateriaNome(tarefa.materiaId)}`,
+      data: {
+        url: '/?page=tarefas',
+        id: tarefa.id,
+        type: 'tarefa'
+      },
+      tag: `tarefa-${tarefa.id}`,
+      requireInteraction: true,
+      onClick: () => navigateTo('tarefas')
+    });
+    
+    // Remover da lista de timers
+    delete notificationTimers[`tarefa-${tarefa.id}`];
+  }, tempoMs);
+  
+  notificationTimers[`tarefa-${tarefa.id}`] = timerId;
+  return timerId;
+}
+
+// Cancelar notificação agendada
+function cancelarNotificacao(id, tipo = 'evento') {
+  const key = `${tipo}-${id}`;
+  if (notificationTimers[key]) {
+    clearTimeout(notificationTimers[key]);
+    delete notificationTimers[key];
+    return true;
+  }
+  return false;
+}
+
+// Reagendar todas as notificações (ao carregar o app)
+function reagendarTodasNotificacoes() {
+  if (!verificarPermissaoNotificacoes()) return;
+  
+  // Cancelar todas existentes
+  Object.keys(notificationTimers).forEach(key => {
+    clearTimeout(notificationTimers[key]);
+  });
+  notificationTimers = {};
+  
+  // Reagendar eventos
+  DB.eventos.forEach(evento => {
+    if (evento.notificar && evento.notificarMinutos && !evento.concluido) {
+      agendarNotificacaoEvento(evento, evento.notificarMinutos);
+    }
+  });
+  
+  // Reagendar tarefas
+  DB.tarefas.forEach(tarefa => {
+    if (tarefa.notificar && tarefa.notificarMinutos && !tarefa.concluida && tarefa.prazo) {
+      agendarNotificacaoTarefa(tarefa, tarefa.notificarMinutos);
+    }
+  });
+}
+
+// Adicionar botão flutuante de notificação
+function adicionarBotaoNotificacao() {
+  // Verificar se já existe
+  if ($('#notificacao-btn')) return;
+  
+  const container = document.createElement('div');
+  container.className = 'lg:hidden fixed bottom-32 right-4 z-50';
+  container.innerHTML = `
+    <button id="notificacao-btn" class="bg-indigo-500 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-indigo-600 transition-colors" title="Ativar notificações">
+      🔔
+    </button>
+  `;
+  document.body.appendChild(container);
+  
+  const btn = $('#notificacao-btn');
+  if (btn) {
+    btn.addEventListener('click', async () => {
+      const granted = await solicitarPermissaoNotificacoes();
+      if (granted) {
+        toast('✅ Notificações ativadas!');
+        btn.innerHTML = '🔔';
+        btn.classList.remove('bg-indigo-500');
+        btn.classList.add('bg-green-500');
+        reagendarTodasNotificacoes();
+      } else {
+        toast('❌ Permissão negada', 'error');
+      }
+    });
+  }
+  
+  // Atualizar ícone se já tiver permissão
+  if (verificarPermissaoNotificacoes()) {
+    btn.innerHTML = '🔔';
+    btn.classList.remove('bg-indigo-500');
+    btn.classList.add('bg-green-500');
+  }
+}
+
 function init() {
   console.log('Inicializando UniAgenda...');
   
@@ -1214,6 +1544,15 @@ function init() {
   $('#filtroTipoEvento')?.addEventListener('change', renderAgenda);
   $('#filtroMateriaEvento')?.addEventListener('change', renderAgenda);
   
+  // Inicializar notificações
+  if (verificarPermissaoNotificacoes()) {
+    console.log('✅ Notificações permitidas');
+    reagendarTodasNotificacoes();
+  }
+  
+  // Adicionar botão de notificação
+  adicionarBotaoNotificacao();
+  
   navigateTo('dashboard');
   console.log('UniAgenda inicializado!');
 }
@@ -1224,6 +1563,7 @@ if (document.readyState === 'loading') {
   init();
 }
 
+// Exportar funções para o escopo global
 window.navigateTo = navigateTo;
 window.toggleTarefa = toggleTarefa;
 window.excluirEvento = excluirEvento;
@@ -1246,3 +1586,7 @@ window.adicionarFalta = adicionarFalta;
 window.removerFalta = removerFalta;
 window.abrirModalImportExport = abrirModalImportExport;
 window.fecharModalImportExport = fecharModalImportExport;
+
+// Exportar funções de notificação
+window.solicitarPermissaoNotificacoes = solicitarPermissaoNotificacoes;
+window.mostrarNotificacao = mostrarNotificacao;

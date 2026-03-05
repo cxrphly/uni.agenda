@@ -12,6 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
   
   <!-- PWA Meta Tags -->
+  <meta name="notification-permission" content="default">
   <meta name="theme-color" content="#4f46e5">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -22,20 +23,18 @@
   <meta name="msapplication-TileColor" content="#4f46e5">
 
   <!-- Ícones PWA -->
-<link rel="icon" type="image/png" sizes="48x48" href="/maskable_icon_x48.png">
-<link rel="icon" type="image/png" sizes="72x72" href="/maskable_icon_x72.png">
-<link rel="icon" type="image/png" sizes="96x96" href="/maskable_icon_x96.png">
-<link rel="icon" type="image/png" sizes="128x128" href="/maskable_icon_x128.png">
-<link rel="icon" type="image/png" sizes="192x192" href="/maskable_icon_x192.png">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon.ico">
-<link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<link rel="manifest" href="/site.webmanifest">
-<link rel="shortcut icon" href="/favicon.ico">
-  
+  <link rel="icon" type="image/png" sizes="48x48" href="/maskable_icon_x48.png">
+  <link rel="icon" type="image/png" sizes="72x72" href="/maskable_icon_x72.png">
+  <link rel="icon" type="image/png" sizes="96x96" href="/maskable_icon_x96.png">
+  <link rel="icon" type="image/png" sizes="128x128" href="/maskable_icon_x128.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/maskable_icon_x192.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="shortcut icon" href="/favicon.ico">
   
   <style>
-    /* Seus estilos completos aqui */
     body {
       font-family: 'Inter', sans-serif;
       background-color: #f9fafb;
@@ -445,48 +444,48 @@
         </div>
       </section>
 
-<!-- Tarefas Section -->
-<section class="page-section hidden space-y-6" id="page-tarefas">
-  <div class="flex flex-wrap gap-4 items-center justify-between">
-    <div class="flex gap-2">
-      <select class="rounded-xl border-gray-200 text-sm focus:ring-primary px-4 py-2" id="filtroPrioridade">
-        <option value="">Todas Prioridades</option>
-        <option value="alta">Alta</option>
-        <option value="media">Média</option>
-        <option value="baixa">Baixa</option>
-      </select>
-      <select class="rounded-xl border-gray-200 text-sm focus:ring-primary px-4 py-2" id="filtroMateriaTarefa">
-        <option value="">Todas Matérias</option>
-      </select>
-      <select class="rounded-xl border-gray-200 text-sm focus:ring-primary px-4 py-2" id="filtroStatusTarefa">
-        <option value="">Todos Status</option>
-        <option value="pendente">Pendentes</option>
-        <option value="concluida">Concluídas</option>
-      </select>
-    </div>
-  </div>
-  <div class="space-y-3" id="lista-tarefas">
-    <!-- Aqui o JavaScript vai inserir as tarefas -->
-  </div>
-</section>
+      <!-- Tarefas Section -->
+      <section class="page-section hidden space-y-6" id="page-tarefas">
+        <div class="flex flex-wrap gap-4 items-center justify-between">
+          <div class="flex gap-2">
+            <select class="rounded-xl border-gray-200 text-sm focus:ring-primary px-4 py-2" id="filtroPrioridade">
+              <option value="">Todas Prioridades</option>
+              <option value="alta">Alta</option>
+              <option value="media">Média</option>
+              <option value="baixa">Baixa</option>
+            </select>
+            <select class="rounded-xl border-gray-200 text-sm focus:ring-primary px-4 py-2" id="filtroMateriaTarefa">
+              <option value="">Todas Matérias</option>
+            </select>
+            <select class="rounded-xl border-gray-200 text-sm focus:ring-primary px-4 py-2" id="filtroStatusTarefa">
+              <option value="">Todos Status</option>
+              <option value="pendente">Pendentes</option>
+              <option value="concluida">Concluídas</option>
+            </select>
+          </div>
+        </div>
+        <div class="space-y-3" id="lista-tarefas">
+          <!-- Aqui o JavaScript vai inserir as tarefas -->
+        </div>
+      </section>
 
-<!-- Notas Section -->
-<section class="page-section hidden space-y-6" id="page-notas">
-  <div class="flex gap-4">
-    <input class="flex-1 rounded-xl border-gray-200 focus:ring-primary text-sm px-4 py-2" placeholder="Buscar em notas..." type="text" id="busca-notas"/>
-    <button class="p-2 border border-gray-200 rounded-xl bg-white" id="btn-busca-notas">🔍</button>
-  </div>
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="lista-notas">
-    <!-- Aqui o JavaScript vai inserir as notas -->
-  </div>
-</section>
+      <!-- Notas Section -->
+      <section class="page-section hidden space-y-6" id="page-notas">
+        <div class="flex gap-4">
+          <input class="flex-1 rounded-xl border-gray-200 focus:ring-primary text-sm px-4 py-2" placeholder="Buscar em notas..." type="text" id="busca-notas"/>
+          <button class="p-2 border border-gray-200 rounded-xl bg-white" id="btn-busca-notas">🔍</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="lista-notas">
+          <!-- Aqui o JavaScript vai inserir as notas -->
+        </div>
+      </section>
 
-<!-- Matérias Section -->
-<section class="page-section hidden space-y-6" id="page-materias">
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="lista-materias">
-    <!-- Aqui o JavaScript vai inserir as matérias -->
-  </div>
-</section>
+      <!-- Matérias Section -->
+      <section class="page-section hidden space-y-6" id="page-materias">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="lista-materias">
+          <!-- Aqui o JavaScript vai inserir as matérias -->
+        </div>
+      </section>
     </main>
 
     <!-- Mobile Bottom Nav -->
@@ -518,10 +517,17 @@
     </nav>
   </div>
 
-  <!-- Botão flutuante mobile -->
+  <!-- Botão flutuante para dados mobile -->
   <div class="lg:hidden fixed bottom-20 right-4 z-50">
     <button class="bg-primary text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-indigo-700 transition-colors" id="mobile-data-btn" title="Gerenciar dados">
       💾
+    </button>
+  </div>
+
+  <!-- Botão flutuante para notificações mobile -->
+  <div class="lg:hidden fixed bottom-32 right-4 z-50">
+    <button id="notificacao-btn" class="bg-indigo-500 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-indigo-600 transition-colors" title="Ativar notificações">
+      🔔
     </button>
   </div>
 
@@ -658,6 +664,17 @@
     window.addEventListener('online', updateConnectionStatus);
     window.addEventListener('offline', updateConnectionStatus);
     updateConnectionStatus();
+
+    // Inicializar botão de notificação
+    setTimeout(() => {
+      const notificacaoBtn = document.getElementById('notificacao-btn');
+      if (notificacaoBtn && typeof window.solicitarPermissaoNotificacoes === 'function') {
+        if (Notification && Notification.permission === 'granted') {
+          notificacaoBtn.classList.remove('bg-indigo-500');
+          notificacaoBtn.classList.add('bg-green-500');
+        }
+      }
+    }, 1000);
   </script>
 </body>
 </html>
