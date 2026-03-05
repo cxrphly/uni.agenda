@@ -1,96 +1,50 @@
-const CACHE_NAME = 'uniagenda-v1';
+const CACHE_NAME = 'uniagenda-v4';
 const urlsToCache = [
   '/',
   '/index.html',
   '/app.js',
-  '/manifest.json',
-  '/android-chrome-192x192.png',
+  '/site.webmanifest',
+  '/maskable_icon_x48.png',
+  '/maskable_icon_x72.png',
+  '/maskable_icon_x96.png',
+  '/maskable_icon_x128.png',
+  '/maskable_icon_x192.png',
   '/android-chrome-512x512.png',
   '/apple-touch-icon.png',
   '/favicon-16x16.png',
   '/favicon-32x32.png',
   '/favicon.ico',
   'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap'
+  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap',
+  'https://em-content.zobj.net/source/animated-noto-color-emoji/427/graduation-cap_1f393.gif'
 ];
 
-// Instalação
 self.addEventListener('install', event => {
-  console.log('Service Worker: Instalando...');
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Service Worker: Cache aberto');
-        return cache.addAll(urlsToCache);
-      })
-      .then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
   );
 });
 
-// Ativação
 self.addEventListener('activate', event => {
-  console.log('Service Worker: Ativando...');
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cache => {
-          if (cache !== CACHE_NAME) {
-            console.log('Service Worker: Limpando cache antigo', cache);
-            return caches.delete(cache);
-          }
-        })
-      );
-    }).then(() => self.clients.claim())
+    caches.keys().then(keys => 
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
   );
 });
 
-// Estratégia de cache: Stale-While-Revalidate
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
   event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        if (response) {
-          // Busca atualização em segundo plano
-          fetch(event.request)
-            .then(networkResponse => {
-              if (networkResponse && networkResponse.status === 200) {
-                const responseToCache = networkResponse.clone();
-                caches.open(CACHE_NAME)
-                  .then(cache => {
-                    cache.put(event.request, responseToCache);
-                  });
-              }
-            })
-            .catch(() => {});
-          
-          return response;
+    caches.match(event.request).then(cached => 
+      cached || fetch(event.request).then(response => {
+        if (response && response.status === 200) {
+          const resClone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, resClone));
         }
-        
-        return fetch(event.request)
-          .then(networkResponse => {
-            if (!networkResponse || networkResponse.status !== 200) {
-              return networkResponse;
-            }
-            
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-            
-            return networkResponse;
-          })
-          .catch(() => {
-            // Se for uma página HTML, retorna o index.html
-            if (event.request.headers.get('accept').includes('text/html')) {
-              return caches.match('/index.html');
-            }
-            
-            return new Response('Offline', { 
-              status: 503, 
-              statusText: 'Service Unavailable' 
-            });
-          });
+        return response;
       })
+    )
   );
 });

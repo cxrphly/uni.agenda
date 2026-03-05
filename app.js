@@ -1,4 +1,3 @@
-
 'use strict';
 
 let DB = {
@@ -184,7 +183,6 @@ function renderPagina(pagina) {
 }
 
 function renderDashboard() {
-  // Stats
   $('#stat-eventos').textContent = DB.eventos.length;
   $('#stat-tarefas').textContent = DB.tarefas.filter(t => !t.concluida).length;
   $('#stat-notas').textContent = DB.notas.length;
@@ -211,7 +209,7 @@ function renderDashboard() {
     $('#dash-tarefas').innerHTML = '<div class="text-center text-gray-400 py-4">Nenhuma tarefa</div>';
   } else {
     $('#dash-tarefas').innerHTML = tarefas.map(t => `
-        <div class="flex items-center gap-3">
+      <div class="flex items-center gap-3">
         <input type="checkbox" class="rounded text-primary h-5 w-5" onchange="toggleTarefa('${t.id}')" ${t.concluida ? 'checked' : ''}>
         <span class="text-sm text-gray-700 flex-1">${t.titulo}</span>
         <span class="priority-dot ${t.prioridade === 'alta' ? 'bg-red-500' : t.prioridade === 'media' ? 'bg-yellow-500' : 'bg-green-500'}"></span>
@@ -221,7 +219,7 @@ function renderDashboard() {
                      'bg-green-100 text-green-600'}">
           ${t.prioridade}
         </span>
-    </div>
+      </div>
     `).join('');
   }
 
@@ -255,6 +253,8 @@ function renderDashboard() {
 }
 
 function renderAgenda() {
+  popularSelectMaterias('filtroMateriaEvento');
+  
   if (DB.eventos.length === 0) {
     $('#lista-eventos').innerHTML = '<div class="text-center text-gray-400 py-12">Nenhum evento cadastrado</div>';
     return;
@@ -277,12 +277,11 @@ function renderAgenda() {
 }
 
 function renderTarefas() {
-popularSelectMaterias('filtroMateriaTarefa');
+  popularSelectMaterias('filtroMateriaTarefa');
+  
   const filtroPrioridade = $('#filtroPrioridade')?.value;
   const filtroMateria = $('#filtroMateriaTarefa')?.value;
   const filtroStatus = $('#filtroStatusTarefa')?.value;
-
-  console.log('Renderizando tarefas com filtros:', { filtroPrioridade, filtroMateria, filtroStatus });
 
   let tarefasFiltradas = [...DB.tarefas];
  
@@ -309,7 +308,7 @@ popularSelectMaterias('filtroMateriaTarefa');
   });
 
   if (tarefasFiltradas.length === 0) {
-    $('#lista-tarefas').innerHTML = '<div class="text-center text-gray-400 py-12">Nenhuma tarefa encontrada com os filtros selecionados</div>';
+    $('#lista-tarefas').innerHTML = '<div class="text-center text-gray-400 py-12">Nenhuma tarefa encontrada</div>';
     return;
   }
 
@@ -341,6 +340,7 @@ popularSelectMaterias('filtroMateriaTarefa');
     </div>
   `).join('');
 }
+
 function popularSelectMaterias(selectId) {
   const select = $(`#${selectId}`);
   if (!select) return;
@@ -358,11 +358,15 @@ function renderNotas() {
   }
 
   $('#lista-notas').innerHTML = DB.notas.map(n => `
-    <div class="p-6 rounded-xl h-48 relative cursor-pointer hover:shadow-lg transition-shadow"
+    <div class="p-6 rounded-xl h-48 relative cursor-pointer hover:shadow-lg transition-shadow group"
          style="background:${n.cor || '#4f46e5'}20; border: 1px solid ${n.cor || '#4f46e5'}40"
          onclick="editarNota('${n.id}')">
       <h4 class="font-bold mb-2 truncate">${n.titulo || 'Sem título'}</h4>
       <p class="text-sm text-gray-600 line-clamp-4">${n.conteudo || 'Sem conteúdo'}</p>
+      <button class="absolute bottom-4 right-4 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+              onclick="excluirNota('${n.id}'); event.stopPropagation();" title="Excluir nota">
+        🗑️
+      </button>
     </div>
   `).join('');
 }
@@ -409,9 +413,9 @@ function renderMaterias() {
             </div>
             <div class="flex gap-2 mt-2">
               <button class="text-xs bg-gray-100 px-2 py-1 rounded hover:bg-gray-200" 
-                      onclick="adicionarFalta('${m.id}')">+ Falta</button>
+                      onclick="adicionarFalta('${m.id}'); event.stopPropagation();">+ Falta</button>
               <button class="text-xs bg-gray-100 px-2 py-1 rounded hover:bg-gray-200" 
-                      onclick="removerFalta('${m.id}')">- Falta</button>
+                      onclick="removerFalta('${m.id}'); event.stopPropagation();">- Falta</button>
             </div>
           </div>
         ` : ''}
@@ -456,8 +460,8 @@ function renderHorarios() {
 
   for (let i = 0; i < horarios.length; i++) {
     const hora = horarios[i];
-    html += `<tr class="hover:bg-gray-50/50">`;
-    html += `<td class="p-2 text-xs font-medium text-gray-400 border border-gray-100 text-center">${hora}</td>`;
+    let linha = `<tr class="hover:bg-gray-50/50">`;
+    linha += `<td class="p-2 text-xs font-medium text-gray-400 border border-gray-100 text-center">${hora}</td>`;
     
     dias.forEach(dia => {
       const aula = DB.horarios.find(h => 
@@ -470,7 +474,7 @@ function renderHorarios() {
         const horaFim = parseInt(aula.horaFim.split(':')[0]);
         const rowspan = horaFim - horaInicio;
         
-        html += `
+        linha += `
           <td class="border border-gray-100 p-1 relative" rowspan="${rowspan}">
             <div class="bg-primary text-white p-2 rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity relative group"
                  style="background: ${getMateriaCor(aula.materiaId)}; min-height: ${rowspan * 40}px"
@@ -485,26 +489,12 @@ function renderHorarios() {
           </td>
         `;
       } else {
-        let temAulaAnterior = false;
-        for (let j = i - 1; j >= 0; j--) {
-          const aulaAnterior = DB.horarios.find(h => 
-            h.diaSemana === dia.id && 
-            h.horaInicio === horarios[j] &&
-            parseInt(h.horaFim.split(':')[0]) > parseInt(hora.split(':')[0])
-          );
-          if (aulaAnterior) {
-            temAulaAnterior = true;
-            break;
-          }
-        }
-        
-        if (!temAulaAnterior) {
-          html += `<td class="border border-gray-100"></td>`;
-        }
+        linha += `<td class="border border-gray-100"></td>`;
       }
     });
     
-    html += `</tr>`;
+    linha += `</tr>`;
+    html += linha;
   }
 
   html += `
@@ -1196,14 +1186,7 @@ function init() {
   });
 
   $('#btn-exportar')?.addEventListener('click', () => {
-    const blob = new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `uniagenda_${hoje()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast('Dados exportados!');
+    exportarArquivo();
   });
 
   const mobileDataBtn = $('#mobile-data-btn');
@@ -1223,31 +1206,14 @@ function init() {
     }
   });
 
-$('#filtroPrioridade')?.addEventListener('change', () => {
-  console.log('Filtro prioridade alterado:', $('#filtroPrioridade').value);
-  renderTarefas();
-});
-
-$('#filtroMateriaTarefa')?.addEventListener('change', () => {
-  console.log('Filtro matéria alterado:', $('#filtroMateriaTarefa').value);
-  renderTarefas();
-});
-
-$('#filtroStatusTarefa')?.addEventListener('change', () => {
-  console.log('Filtro status alterado:', $('#filtroStatusTarefa').value);
-  renderTarefas();
-});
-
-$('#busca-notas')?.addEventListener('input', () => {
-  renderNotas();
-});
-
-$('#btn-busca-notas')?.addEventListener('click', () => {
-  renderNotas();
-});
-
-$('#filtroTipoEvento')?.addEventListener('change', renderAgenda);
-$('#filtroMateriaEvento')?.addEventListener('change', renderAgenda);
+  $('#filtroPrioridade')?.addEventListener('change', renderTarefas);
+  $('#filtroMateriaTarefa')?.addEventListener('change', renderTarefas);
+  $('#filtroStatusTarefa')?.addEventListener('change', renderTarefas);
+  $('#busca-notas')?.addEventListener('input', renderNotas);
+  $('#btn-busca-notas')?.addEventListener('click', renderNotas);
+  $('#filtroTipoEvento')?.addEventListener('change', renderAgenda);
+  $('#filtroMateriaEvento')?.addEventListener('change', renderAgenda);
+  
   navigateTo('dashboard');
   console.log('UniAgenda inicializado!');
 }
