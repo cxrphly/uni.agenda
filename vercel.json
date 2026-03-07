@@ -1,58 +1,54 @@
 {
   "builds": [
     {
-      "src": "*.html",
+      "src": "public/**",
       "use": "@vercel/static"
     },
     {
-      "src": "*.js",
+      "src": "dist/**/*.html",
       "use": "@vercel/static"
     },
     {
-      "src": "*.json",
+      "src": "dist/**/*.js",
       "use": "@vercel/static"
     },
     {
-      "src": "*.png",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.ico",
-      "use": "@vercel/static"
-    },
-    {
-      "src": "*.webmanifest",
+      "src": "dist/**/*.css",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
-      "src": "/app.js",
-      "dest": "/app.js"
+      "src": "/",
+      "dest": "/dist/index.html"
     },
     {
-      "src": "/sw.js",
-      "dest": "/sw.js"
+      "src": "/icons/(.*)",
+      "dest": "/public/icons/$1"
     },
     {
       "src": "/site.webmanifest",
-      "dest": "/site.webmanifest"
+      "dest": "/public/site.webmanifest"
     },
     {
-      "src": "/(.*)\\.png",
-      "dest": "/$1.png"
+      "src": "/sw.js",
+      "dest": "/public/sw.js"
     },
     {
-      "src": "/(.*)\\.ico",
-      "dest": "/$1.ico"
+      "src": "/offline.html",
+      "dest": "/public/offline.html"
     },
     {
-      "src": "/(.*\\..*)$",
-      "dest": "/$1"
+      "src": "/css/(.*)",
+      "dest": "/dist/css/$1"
+    },
+    {
+      "src": "/js/(.*)",
+      "dest": "/dist/js/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/dist/index.html"
     }
   ]
 }

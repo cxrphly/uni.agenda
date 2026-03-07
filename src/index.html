@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<!-- Include head component -->
+{{head}}
+
+{{install-pwa}}
+
+<body class="overflow-x-hidden">
+  <!-- Include all components -->
+  {{loader}}
+  {{sidebar}}
+  
+  <!-- BEGIN: Main Content Wrapper -->
+  <div class="lg:ml-64 min-h-screen flex flex-col pb-20 lg:pb-0" id="main-content">
+    {{header}}
+    
+    <main class="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full" id="content-area">
+      <!-- Include all sections -->
+      {{dashboard}}
+      {{agenda}}
+      {{horarios}}
+      {{tarefas}}
+      {{notas}}
+      {{materias}}
+    </main>
+    
+    {{mobile-nav}}
+  </div>
+  
+  {{floating-buttons}}
+  {{universal-modal}}
+  {{import-export-modal}}
+  
+  <!-- Script principal -->
+  <script src="/js/app.js"></script>
+  
+  <script>
+    // Loader control
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        const loader = document.getElementById('loader');
+        if (loader) {
+          loader.classList.add('fade-out');
+          setTimeout(function() {
+            loader.style.display = 'none';
+          }, 500);
+        }
+      }, 1500);
+    });
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(registration) {
+            console.log('Service Worker registrado');
+          })
+          .catch(function(error) {
+            console.log('Service Worker falhou:', error);
+          });
+      });
+    }
+
+    let deferredPrompt;
+    const installContainer = document.getElementById('install-pwa-container');
+    const installBtn = document.getElementById('install-pwa-btn');
+    const closeBtn = document.getElementById('close-install-btn');
+    
+    setTimeout(() => {
+      if (!window.matchMedia('(display-mode: standalone)').matches && installContainer) {
+        installContainer.classList.remove('hidden');
+      }
+    }, 2000);
+    
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      if (installContainer && !window.matchMedia('(display-mode: standalone)').matches) {
+        installContainer.classList.remove('hidden');
+      }
+    });
+
+    if (installBtn) {
+      installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+          deferredPrompt.prompt();
+          const { outcome } = await deferredPrompt.userChoice;
+          if (outcome === 'accepted') {
+            deferredPrompt = null;
+            installContainer.classList.add('hidden');
+          }
+        } else {
+          alert('Para instalar, use o menu do navegador: "Adicionar à tela inicial"');
+        }
+      });
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        installContainer.classList.add('hidden');
+      });
+    }
+
+    window.addEventListener('appinstalled', () => {
+      deferredPrompt = null;
+      installContainer.classList.add('hidden');
+    });
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      installContainer.classList.add('hidden');
+    }
+
+    function updateConnectionStatus() {
+      const statusDiv = document.getElementById('connection-status');
+      if (statusDiv) {
+        if (!navigator.onLine) {
+          statusDiv.classList.remove('hidden');
+        } else {
+          statusDiv.classList.add('hidden');
+        }
+      }
+    }
+
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+    updateConnectionStatus();
+
+    // Notificações
+    const notificacaoBtn = document.getElementById('notificacao-btn');
+    
+    if (notificacaoBtn) {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        notificacaoBtn.classList.remove('bg-indigo-500');
+        notificacaoBtn.classList.add('bg-green-500');
+        notificacaoBtn.title = 'Notificações ativas';
+      }
+      
+      notificacaoBtn.addEventListener('click', async function() {
+        if (typeof window.solicitarPermissaoNotificacoes === 'function') {
+          const granted = await window.solicitarPermissaoNotificacoes();
+          if (granted) {
+            this.classList.remove('bg-indigo-500');
+            this.classList.add('bg-green-500');
+            this.title = 'Notificações ativas';
+            alert('✅ Notificações ativadas!');
+            
+            if (typeof window.reagendarTodasNotificacoes === 'function') {
+              window.reagendarTodasNotificacoes();
+            }
+          } else {
+            alert('❌ Permissão negada. Você pode ativar manualmente nas configurações do navegador.');
+          }
+        }
+      });
+    }
+
+    // Debug - verificar se o JS carregou
+    setTimeout(() => {
+      if (typeof window.navigateTo === 'function') {
+        console.log('✅ app.js carregado com sucesso!');
+      } else {
+        console.error('❌ app.js NÃO carregou!');
+      }
+    }, 1000);
+  </script>
+</body>
+</html>

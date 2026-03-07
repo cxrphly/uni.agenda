@@ -1,0 +1,63 @@
+<!-- Dashboard Section -->
+<section class="page-section space-y-8" id="page-dashboard">
+  <!-- Stats Cards -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+      <span class="text-sm text-gray-500">Eventos</span>
+      <span class="text-2xl font-bold text-gray-800" id="stat-eventos">0</span>
+    </div>
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+      <span class="text-sm text-gray-500">Tarefas</span>
+      <span class="text-2xl font-bold text-gray-800" id="stat-tarefas">0</span>
+    </div>
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+      <span class="text-sm text-gray-500">Notas</span>
+      <span class="text-2xl font-bold text-gray-800" id="stat-notas">0</span>
+    </div>
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col">
+      <span class="text-sm text-gray-500">Matérias</span>
+      <span class="text-2xl font-bold text-gray-800" id="stat-materias">0</span>
+    </div>
+  </div>
+
+  <!-- 2x2 Preview Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Próximos Eventos -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-gray-800">Próximos Eventos</h3>
+        <a class="text-primary text-sm font-medium hover:underline cursor-pointer" onclick="navigateTo('agenda')">Ver todos</a>
+      </div>
+      <ul class="space-y-4" id="dash-eventos">
+        <li class="text-center text-gray-400 py-4">Nenhum evento próximo</li>
+      </ul>
+    </div>
+
+    <!-- Tarefas Pendentes -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="font-bold text-gray-800">Tarefas Pendentes</h3>
+        <span class="bg-indigo-100 text-primary text-xs px-2 py-1 rounded-full" id="dash-tarefas-count">0</span>
+      </div>
+      <div class="space-y-3" id="dash-tarefas">
+        <div class="text-center text-gray-400 py-4">Nenhuma tarefa pendente</div>
+      </div>
+    </div>
+
+    <!-- Aulas de Hoje -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <h3 class="font-bold text-gray-800 mb-4">Aulas de Hoje</h3>
+      <div class="space-y-4" id="dash-aulas">
+        <div class="text-center text-gray-400 py-4">Nenhuma aula hoje</div>
+      </div>
+    </div>
+
+    <!-- Notas Recentes -->
+    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+      <h3 class="font-bold text-gray-800 mb-4">Notas Recentes</h3>
+      <div class="grid grid-cols-2 gap-3" id="dash-notas">
+        <div class="col-span-2 text-center text-gray-400 py-4">Nenhuma nota recente</div>
+      </div>
+    </div>
+  </div>
+</section>

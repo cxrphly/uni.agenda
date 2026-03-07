@@ -1,0 +1,27 @@
+{
+  "name": "uniagenda",
+  "version": "1.0.0",
+  "description": "Aplicativo de agenda universitária",
+  "main": "src/js/app.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "node build.js",
+    "vercel-build": "npm run build"
+  },
+  "keywords": [
+    "agenda",
+    "universidade",
+    "pwa"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cxrphly/uni.agenda.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/cxrphly/uni.agenda/issues"
+  },
+  "homepage": "https://github.com/cxrphly/uni.agenda#readme"
+}
