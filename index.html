@@ -577,104 +577,173 @@
 
   <script src="/app.js"></script>
   
-  <script>
-    // Loader control
-    window.addEventListener('load', function() {
-      setTimeout(function() {
-        const loader = document.getElementById('loader');
-        if (loader) {
-          loader.classList.add('fade-out');
-          setTimeout(function() {
-            loader.style.display = 'none';
-          }, 500);
-        }
-      }, 1500);
-    });
+<script src="/app.js"></script>
 
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js')
-          .then(function(registration) {
-            console.log('Service Worker registrado');
-          })
-          .catch(function(error) {
-            console.log('Service Worker falhou:', error);
-          });
-      });
+<script>
+  // Loader control
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      const loader = document.getElementById('loader');
+      if (loader) {
+        loader.classList.add('fade-out');
+        setTimeout(function() {
+          loader.style.display = 'none';
+        }, 500);
+      }
+    }, 1500);
+  });
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(registration) {
+          console.log('Service Worker registrado');
+        })
+        .catch(function(error) {
+          console.log('Service Worker falhou:', error);
+        });
+    });
+  }
+
+  let deferredPrompt;
+  const installContainer = document.getElementById('install-pwa-container');
+  const installBtn = document.getElementById('install-pwa-btn');
+  const closeBtn = document.getElementById('close-install-btn');
+  
+  setTimeout(() => {
+    if (!window.matchMedia('(display-mode: standalone)').matches && installContainer) {
+      installContainer.classList.remove('hidden');
+    }
+  }, 2000);
+  
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    if (installContainer && !window.matchMedia('(display-mode: standalone)').matches) {
+      installContainer.classList.remove('hidden');
+    }
+  });
+
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          deferredPrompt = null;
+          installContainer.classList.add('hidden');
+        }
+      } else {
+        alert('Para instalar, use o menu do navegador: "Adicionar à tela inicial"');
+      }
+    });
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => {
+      installContainer.classList.add('hidden');
+    });
+  }
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    installContainer.classList.add('hidden');
+  });
+
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    installContainer.classList.add('hidden');
+  }
+
+  function updateConnectionStatus() {
+    const statusDiv = document.getElementById('connection-status');
+    if (!navigator.onLine) {
+      statusDiv.classList.remove('hidden');
+    } else {
+      statusDiv.classList.add('hidden');
+    }
+  }
+
+  window.addEventListener('online', updateConnectionStatus);
+  window.addEventListener('offline', updateConnectionStatus);
+  updateConnectionStatus();
+
+  // =============================================
+  // NOTIFICAÇÕES - CORREÇÃO DO BOTÃO
+  // =============================================
+  
+  // Função para solicitar permissão (cópia local caso a do app.js não esteja disponível)
+  async function solicitarPermissaoNotificacoesLocal() {
+    if (!('Notification' in window)) {
+      alert('Seu navegador não suporta notificações');
+      return false;
     }
 
-    let deferredPrompt;
-    const installContainer = document.getElementById('install-pwa-container');
-    const installBtn = document.getElementById('install-pwa-btn');
-    const closeBtn = document.getElementById('close-install-btn');
-    
-    setTimeout(() => {
-      if (!window.matchMedia('(display-mode: standalone)').matches && installContainer) {
-        installContainer.classList.remove('hidden');
-      }
-    }, 2000);
-    
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      if (installContainer && !window.matchMedia('(display-mode: standalone)').matches) {
-        installContainer.classList.remove('hidden');
-      }
-    });
+    if (Notification.permission === 'granted') {
+      return true;
+    }
 
-    if (installBtn) {
-      installBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          if (outcome === 'accepted') {
-            deferredPrompt = null;
-            installContainer.classList.add('hidden');
+    if (Notification.permission !== 'denied') {
+      const permission = await Notification.requestPermission();
+      return permission === 'granted';
+    }
+
+    return false;
+  }
+
+  // Configurar botão de notificação
+  const notificacaoBtn = document.getElementById('notificacao-btn');
+  
+  if (notificacaoBtn) {
+    // Atualizar ícone se já tiver permissão
+    if ('Notification' in window && Notification.permission === 'granted') {
+      notificacaoBtn.classList.remove('bg-indigo-500');
+      notificacaoBtn.classList.add('bg-green-500');
+      notificacaoBtn.title = 'Notificações ativas';
+    }
+    
+    notificacaoBtn.addEventListener('click', async function() {
+      // Tentar usar a função do app.js primeiro
+      if (typeof window.solicitarPermissaoNotificacoes === 'function') {
+        const granted = await window.solicitarPermissaoNotificacoes();
+        if (granted) {
+          this.classList.remove('bg-indigo-500');
+          this.classList.add('bg-green-500');
+          this.title = 'Notificações ativas';
+          alert('✅ Notificações ativadas!');
+          
+          // Reagendar notificações se a função existir
+          if (typeof window.reagendarTodasNotificacoes === 'function') {
+            window.reagendarTodasNotificacoes();
           }
         } else {
-          alert('Para instalar, use o menu do navegador: "Adicionar à tela inicial"');
+          alert('❌ Permissão negada. Você pode ativar manualmente nas configurações do navegador.');
         }
-      });
-    }
-
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        installContainer.classList.add('hidden');
-      });
-    }
-
-    window.addEventListener('appinstalled', () => {
-      deferredPrompt = null;
-      installContainer.classList.add('hidden');
-    });
-
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      installContainer.classList.add('hidden');
-    }
-
-    function updateConnectionStatus() {
-      const statusDiv = document.getElementById('connection-status');
-      if (!navigator.onLine) {
-        statusDiv.classList.remove('hidden');
       } else {
-        statusDiv.classList.add('hidden');
-      }
-    }
-
-    window.addEventListener('online', updateConnectionStatus);
-    window.addEventListener('offline', updateConnectionStatus);
-    updateConnectionStatus();
-
-    // Inicializar botão de notificação
-    setTimeout(() => {
-      const notificacaoBtn = document.getElementById('notificacao-btn');
-      if (notificacaoBtn && typeof window.solicitarPermissaoNotificacoes === 'function') {
-        if (Notification && Notification.permission === 'granted') {
-          notificacaoBtn.classList.remove('bg-indigo-500');
-          notificacaoBtn.classList.add('bg-green-500');
+        // Fallback para a função local
+        const granted = await solicitarPermissaoNotificacoesLocal();
+        if (granted) {
+          this.classList.remove('bg-indigo-500');
+          this.classList.add('bg-green-500');
+          this.title = 'Notificações ativas';
+          alert('✅ Notificações ativadas!');
+        } else {
+          alert('❌ Permissão negada. Você pode ativar manualmente nas configurações do navegador.');
         }
       }
-    }, 1000);
-  </script>
+    });
+  }
+
+  // Verificar se as funções de notificação do app.js foram carregadas
+  setTimeout(() => {
+    if (typeof window.reagendarTodasNotificacoes === 'function') {
+      console.log('✅ Funções de notificação carregadas');
+      if ('Notification' in window && Notification.permission === 'granted') {
+        window.reagendarTodasNotificacoes();
+      }
+    } else {
+      console.log('⚠️ Funções de notificação não encontradas no app.js');
+    }
+  }, 1000);
+</script>
 </body>
 </html>
