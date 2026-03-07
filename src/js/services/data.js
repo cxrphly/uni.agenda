@@ -1,8 +1,7 @@
-// data.js - Serviço de dados com Supabase
+// data.js - Serviço de dados simplificado com Supabase direto
 (function() {
   class DataService {
     constructor() {
-      this.supabase = null;
       this.localDB = {
         materias: [],
         eventos: [],
@@ -10,34 +9,35 @@
         notas: [],
         horarios: []
       };
+      this.supabase = null;
       this.initialized = false;
-      this.syncInProgress = false;
-      this.config = window.appConfig?.supabase;
     }
 
     async init() {
       if (this.initialized) return;
 
       try {
-        console.log('🔄 Inicializando Supabase...');
+        console.log('🔄 Inicializando DataService...');
         
-        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.0');
-        
-        this.supabase = createClient(this.config.url, this.config.anonKey);
+        // Carregar dados do localStorage primeiro
         this.loadFromLocalStorage();
-
-        if (window.auth) {
-          window.auth.addListener(async (user) => {
-            if (user) {
-              await this.syncWithServer();
-            }
-          });
+        
+        // Inicializar cliente Supabase
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.0');
+        this.supabase = createClient(
+          window.appConfig.supabase.url,
+          window.appConfig.supabase.anonKey
+        );
+        
+        // Se estiver logado, buscar dados do Supabase
+        if (window.auth?.isAuthenticated()) {
+          await this.pullFromSupabase();
         }
-
+        
         this.initialized = true;
         console.log('✅ DataService inicializado');
       } catch (error) {
-        console.error('❌ Erro ao inicializar Supabase:', error);
+        console.error('❌ Erro ao inicializar DataService:', error);
       }
     }
 
@@ -57,161 +57,248 @@
       localStorage.setItem('uniagenda_db', JSON.stringify(this.localDB));
     }
 
-    async syncWithServer() {
-      if (!navigator.onLine || !window.auth?.isAuthenticated() || this.syncInProgress) {
-        return;
-      }
-
-      this.syncInProgress = true;
-      this.showSyncIndicator('Sincronizando...');
+    async pullFromSupabase() {
+      if (!this.supabase || !window.auth?.isAuthenticated()) return;
 
       try {
         const userId = window.auth.getUserId();
-        console.log('🔄 Sincronizando dados para usuário:', userId);
+        console.log('📥 Buscando dados do Supabase para:', userId);
         
         const tabelas = ['materias', 'eventos', 'tarefas', 'notas', 'horarios'];
         
         for (const tabela of tabelas) {
-          const pendingItems = (this.localDB[tabela] || []).filter(i => i.sync_status === 'pending');
-          
-          for (const item of pendingItems) {
-            const { error } = await this.supabase
-              .from(tabela)
-              .upsert({
-                ...item,
-                user_id: userId,
-                sync_status: 'synced'
-              });
-
-            if (!error) {
-              item.sync_status = 'synced';
-            }
-          }
-
-          const { data: serverItems, error } = await this.supabase
+          const { data, error } = await this.supabase
             .from(tabela)
             .select('*')
             .eq('user_id', userId);
 
-          if (!error && serverItems) {
-            if (!this.localDB[tabela]) this.localDB[tabela] = [];
-            
-            serverItems.forEach(serverItem => {
-              const localIndex = this.localDB[tabela].findIndex(i => i.id === serverItem.id);
-              if (localIndex >= 0) {
-                this.localDB[tabela][localIndex] = serverItem;
-              } else {
-                this.localDB[tabela].push(serverItem);
-              }
-            });
+          if (error) {
+            console.error(`Erro ao buscar ${tabela}:`, error);
+            continue;
+          }
+
+          if (data && data.length > 0) {
+            console.log(`📥 Recebidos ${data.length} registros de ${tabela}`);
+            this.localDB[tabela] = data;
           }
         }
-
+        
         this.saveToLocalStorage();
-        this.hideSyncIndicator();
-        
-        if (window.renderPagina) {
-          window.renderPagina(window.paginaAtual);
-        }
-        
-        this.showToast('✅ Dados sincronizados!');
-        
+        console.log('✅ Dados sincronizados do Supabase');
       } catch (error) {
-        console.error('❌ Erro na sincronização:', error);
-        this.showToast('❌ Erro ao sincronizar', 'error');
-      } finally {
-        this.syncInProgress = false;
-        this.hideSyncIndicator();
+        console.error('❌ Erro ao buscar dados do Supabase:', error);
       }
     }
 
-    showSyncIndicator(message) {
-      const indicator = document.getElementById('sync-indicator');
-      const messageEl = document.getElementById('sync-message');
-      if (indicator) {
-        if (messageEl) messageEl.textContent = message;
-        indicator.classList.remove('hidden');
-      }
+async pushToSupabase(tabela, item) {
+  if (!this.supabase || !window.auth?.isAuthenticated()) return false;
+
+  try {
+    // VALIDAÇÃO DE ID - UUID VÁLIDO
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+    if (!uuidRegex.test(item.id)) {
+      console.warn(`⚠️ Ignorando item com ID inválido: ${item.id}`);
+      return false;
+    }
+    
+    console.log(`📤 Enviando para Supabase [${tabela}]:`, item);
+    
+    // Garantir que o ID seja string
+    const baseItem = {
+      ...item,
+      id: String(item.id),
+      user_id: window.auth.getUserId(),
+      updated_at: new Date().toISOString()
+    };
+    
+    // Mapeamento específico por tabela
+    let itemToSend;
+    
+    switch(tabela) {
+      case 'materias':
+        itemToSend = {
+          id: baseItem.id,
+          user_id: baseItem.user_id,
+          nome: baseItem.nome,
+          professor: baseItem.professor,
+          sala: baseItem.sala,
+          max_faltas: baseItem.max_faltas || baseItem.maxFaltas,
+          faltas: baseItem.faltas,
+          cor: baseItem.cor,
+          updated_at: baseItem.updated_at
+        };
+        break;
+        
+      case 'eventos':
+        itemToSend = {
+          id: baseItem.id,
+          user_id: baseItem.user_id,
+          materia_id: baseItem.materia_id || baseItem.materiaId,
+          titulo: baseItem.titulo,
+          tipo: baseItem.tipo,
+          data: baseItem.data,
+          hora: baseItem.hora,
+          descricao: baseItem.descricao,
+          notificar: baseItem.notificar,
+          notificar_minutos: baseItem.notificar_minutos || baseItem.notificarMinutos,
+          concluido: baseItem.concluido,
+          updated_at: baseItem.updated_at
+        };
+        break;
+        
+      case 'tarefas':
+        itemToSend = {
+          id: baseItem.id,
+          user_id: baseItem.user_id,
+          materia_id: baseItem.materia_id || baseItem.materiaId,
+          titulo: baseItem.titulo,
+          prioridade: baseItem.prioridade,
+          prazo: baseItem.prazo,
+          concluida: baseItem.concluida,
+          notificar: baseItem.notificar,
+          notificar_minutos: baseItem.notificar_minutos || baseItem.notificarMinutos,
+          updated_at: baseItem.updated_at
+        };
+        break;
+        
+      case 'notas':
+        itemToSend = {
+          id: baseItem.id,
+          user_id: baseItem.user_id,
+          materia_id: baseItem.materia_id || baseItem.materiaId,
+          titulo: baseItem.titulo,
+          conteudo: baseItem.conteudo,
+          cor: baseItem.cor,
+          updated_at: baseItem.updated_at
+        };
+        break;
+        
+      case 'horarios':
+        itemToSend = {
+          id: baseItem.id,
+          user_id: baseItem.user_id,
+          materia_id: baseItem.materia_id || baseItem.materiaId,
+          dia_semana: baseItem.diaSemana || baseItem.dia_semana,
+          hora_inicio: baseItem.horaInicio || baseItem.hora_inicio,
+          hora_fim: baseItem.horaFim || baseItem.hora_fim,
+          updated_at: baseItem.updated_at
+        };
+        break;
+        
+      default:
+        itemToSend = baseItem;
+    }
+    
+    console.log(`📤 Dados formatados:`, itemToSend);
+    
+    const { data, error } = await this.supabase
+      .from(tabela)
+      .upsert(itemToSend, { onConflict: 'id' })
+      .select();
+
+    if (error) {
+      console.error(`❌ Erro no upsert ${tabela}:`, error);
+      return false;
     }
 
-    hideSyncIndicator() {
-      const indicator = document.getElementById('sync-indicator');
-      if (indicator) indicator.classList.add('hidden');
-    }
-
-    // CRUD methods
+    console.log(`✅ Dados sincronizados com Supabase [${tabela}]:`, data);
+    return true;
+  } catch (error) {
+    console.error(`❌ Erro na sincronização ${tabela}:`, error);
+    return false;
+  }
+}
     async getAll(tabela) {
-      if (!window.auth?.isAuthenticated()) return [];
       return this.localDB[tabela] || [];
     }
 
     async getById(tabela, id) {
-      if (!window.auth?.isAuthenticated()) return null;
       return this.localDB[tabela]?.find(i => i.id === id);
     }
 
     async save(tabela, item) {
       if (!window.auth?.isAuthenticated()) {
-        this.showToast('Faça login para salvar dados', 'error');
+        toast('Faça login para salvar dados', 'error');
         return null;
       }
 
+      console.log(`💾 Salvando [${tabela}]:`, item.id || 'novo');
+      
       if (!this.localDB[tabela]) this.localDB[tabela] = [];
       
       const index = this.localDB[tabela].findIndex(i => i.id === item.id);
       
-      const itemWithSync = {
+      const itemWithMeta = {
         ...item,
-        sync_status: navigator.onLine && window.auth?.isAuthenticated() ? 'synced' : 'pending',
-        updated_at: new Date().toISOString(),
-        user_id: window.auth.getUserId()
+        user_id: window.auth.getUserId(),
+        updated_at: new Date().toISOString()
       };
 
       if (index >= 0) {
-        this.localDB[tabela][index] = itemWithSync;
+        this.localDB[tabela][index] = itemWithMeta;
+        console.log(`📝 Item atualizado`);
       } else {
-        this.localDB[tabela].push(itemWithSync);
+        this.localDB[tabela].push(itemWithMeta);
+        console.log(`➕ Novo item adicionado`);
       }
 
       this.saveToLocalStorage();
-
-      if (navigator.onLine && window.auth?.isAuthenticated()) {
-        await this.syncItem(tabela, itemWithSync);
+      
+      // TENTAR SINCRONIZAR IMEDIATAMENTE COM SUPABASE
+      if (navigator.onLine) {
+        await this.pushToSupabase(tabela, itemWithMeta);
       }
 
-      return itemWithSync;
+      return itemWithMeta;
     }
 
     async delete(tabela, id) {
       if (!window.auth?.isAuthenticated()) {
-        this.showToast('Faça login para excluir dados', 'error');
+        toast('Faça login para excluir dados', 'error');
         return;
       }
 
+      console.log(`🗑️ Deletando [${tabela}]:`, id);
+      
       if (!this.localDB[tabela]) return;
       
       this.localDB[tabela] = this.localDB[tabela].filter(i => i.id !== id);
       this.saveToLocalStorage();
 
-      if (navigator.onLine && window.auth?.isAuthenticated()) {
-        await this.supabase.from(tabela).delete().eq('id', id);
+      if (navigator.onLine && this.supabase) {
+        try {
+          await this.supabase
+            .from(tabela)
+            .delete()
+            .eq('id', id)
+            .eq('user_id', window.auth.getUserId());
+          console.log(`✅ Deletado do Supabase [${tabela}]`);
+        } catch (error) {
+          console.error('❌ Erro ao deletar do Supabase:', error);
+        }
       }
     }
 
-    async syncItem(tabela, item) {
-      if (!navigator.onLine || !window.auth?.isAuthenticated()) return;
+    async syncAll() {
+      if (!navigator.onLine || !window.auth?.isAuthenticated()) {
+        toast('Offline ou não logado', 'error');
+        return;
+      }
 
-      try {
-        const { error } = await this.supabase
-          .from(tabela)
-          .upsert(item);
-
-        if (!error) {
-          item.sync_status = 'synced';
-          this.saveToLocalStorage();
+      console.log('🔄 Sincronizando todos os dados...');
+      
+      for (const [tabela, items] of Object.entries(this.localDB)) {
+        for (const item of items) {
+          await this.pushToSupabase(tabela, item);
         }
-      } catch (error) {
-        console.error(`Erro ao sincronizar ${tabela}:`, error);
+      }
+      
+      await this.pullFromSupabase();
+      
+      toast('✅ Sincronização concluída!');
+      
+      if (window.renderPagina) {
+        window.renderPagina(window.paginaAtual);
       }
     }
 
@@ -229,15 +316,7 @@
       this.saveToLocalStorage();
       
       if (navigator.onLine && window.auth?.isAuthenticated()) {
-        await this.syncWithServer();
-      }
-    }
-
-    showToast(message, type = 'success') {
-      if (window.toast) {
-        window.toast(message, type);
-      } else {
-        console.log(message);
+        await this.syncAll();
       }
     }
   }

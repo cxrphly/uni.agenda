@@ -11,12 +11,194 @@ let itemEditandoId = null;
 let notificationPermission = false;
 let notificationTimers = {};
 
-const uid = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
+// Função para gerar UUID v4 válido para o Supabase
+const uid = () => {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+};
+
 const $ = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+// =============================================
+// DEBUG E VERIFICAÇÃO DE FUNÇÕES
+// =============================================
+window.debugFunctions = {
+  check: function() {
+    console.group('🔍 Verificação de Funções Globais');
+    const funcoes = [
+      'editarMateria', 'excluirMateria', 'adicionarFalta', 'removerFalta',
+      'editarEvento', 'excluirEvento', 'editarTarefa', 'excluirTarefa',
+      'toggleTarefa', 'editarHorario', 'excluirHorario', 'editarNota', 'excluirNota',
+      'salvarMateria', 'salvarEvento', 'salvarTarefa', 'salvarHorario', 'salvarNota'
+    ];
+    
+    funcoes.forEach(nome => {
+      const status = typeof window[nome] === 'function' ? '✅' : '❌';
+      console.log(`${status} ${nome}:`, typeof window[nome]);
+    });
+    console.groupEnd();
+  }
+};
+
+// =============================================
+// SISTEMA DE TOASTS PROFISSIONAL
+// =============================================
+const ToastManager = {
+  container: null,
+
+  init() {
+    if (!this.container) {
+      this.container = document.createElement('div');
+      this.container.className = 'toast-container';
+      this.container.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 350px;
+        pointer-events: none;
+      `;
+      document.body.appendChild(this.container);
+    }
+  },
+
+  show({ title, message, type = 'success', duration = 5000 }) {
+    this.init();
+    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    const toast = document.createElement('div');
+    toast.id = id;
+    toast.style.cssText = `
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: toastSlideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      border-left: 4px solid ${this.getBorderColor(type)};
+      pointer-events: auto;
+      width: 100%;
+    `;
+
+    const icons = {
+      success: 'fa-circle-check',
+      error: 'fa-circle-exclamation',
+      warning: 'fa-triangle-exclamation',
+      info: 'fa-circle-info'
+    };
+
+    const colors = {
+      success: '#10b981',
+      error: '#ef4444',
+      warning: '#f59e0b',
+      info: '#3b82f6'
+    };
+
+    toast.innerHTML = `
+      <div style="width: 40px; height: 40px; border-radius: 10px; background: ${colors[type]}; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; flex-shrink: 0;">
+        <i class="fa-solid ${icons[type]}"></i>
+      </div>
+      <div style="flex: 1;">
+        <div style="font-weight: 600; font-size: 14px; color: #1f2937; margin-bottom: 2px;">${title}</div>
+        <div style="font-size: 13px; color: #6b7280; line-height: 1.4;">${message}</div>
+      </div>
+      <div style="color: #9ca3af; cursor: pointer; padding: 4px; border-radius: 6px; transition: all 0.2s; flex-shrink: 0;" 
+           onclick="this.parentElement.remove()" onmouseover="this.style.color='#4b5563'; this.style.background='#f3f4f6'" 
+           onmouseout="this.style.color='#9ca3af'; this.style.background='transparent'">
+        <i class="fa-solid fa-xmark"></i>
+      </div>
+    `;
+
+    this.container.appendChild(toast);
+
+    if (duration > 0) {
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.style.animation = 'toastSlideOut 0.2s ease forwards';
+          setTimeout(() => toast.remove(), 200);
+        }
+      }, duration);
+    }
+
+    return id;
+  },
+
+  getBorderColor(type) {
+    const colors = {
+      success: '#10b981',
+      error: '#ef4444',
+      warning: '#f59e0b',
+      info: '#3b82f6'
+    };
+    return colors[type] || colors.success;
+  },
+
+  success(title, message, duration) {
+    return this.show({ title, message, type: 'success', duration });
+  },
+
+  error(title, message, duration) {
+    return this.show({ title, message, type: 'error', duration });
+  },
+
+  warning(title, message, duration) {
+    return this.show({ title, message, type: 'warning', duration });
+  },
+
+  info(title, message, duration) {
+    return this.show({ title, message, type: 'info', duration });
+  }
+};
+
+// Adicionar estilos de animação
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes toastSlideIn {
+    from {
+      opacity: 0;
+      transform: translateX(100%) scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0) scale(1);
+    }
+  }
+  
+  @keyframes toastSlideOut {
+    to {
+      opacity: 0;
+      transform: translateX(100%);
+    }
+  }
+`;
+document.head.appendChild(style);
+
+// Substituir função toast antiga pela nova
+window.toast = {
+  success: (msg) => ToastManager.success('Sucesso', msg),
+  error: (msg) => ToastManager.error('Erro', msg),
+  warning: (msg) => ToastManager.warning('Atenção', msg),
+  info: (msg) => ToastManager.info('Informação', msg)
+};
+
+// Manter compatibilidade com código antigo
+const toast = (mensagem, tipo = 'success') => {
+  if (tipo === 'success') window.toast.success(mensagem);
+  else if (tipo === 'error') window.toast.error(mensagem);
+  else window.toast.info(mensagem);
+};
 
 // =============================================
 // VERIFICAÇÃO DE AUTENTICAÇÃO
@@ -60,7 +242,7 @@ function getMateriaNome(id) {
 
 function getMateriaCor(id) {
   const m = DB.materias?.find(m => m.id === id);
-  return m ? m.cor : '#4f46e5';
+  return m ? m.cor : '#3b82f6';
 }
 
 function getMateriaFaltas(id) {
@@ -85,28 +267,6 @@ function getStatusFaltas(materiaId) {
   if (porcentagem >= 90) return { class: 'faltas-alert', text: 'Crítico' };
   if (porcentagem >= 70) return { class: 'faltas-warning', text: 'Atenção' };
   return { class: 'faltas-ok', text: 'OK' };
-}
-
-function toast(mensagem, tipo = 'success') {
-  let container = $('#toast-container');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'toast-container';
-    container.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 9999;
-    `;
-    document.body.appendChild(container);
-  }
-
-  const toast = document.createElement('div');
-  toast.className = `toast ${tipo === 'error' ? 'error' : ''}`;
-  toast.textContent = mensagem;
-  container.appendChild(toast);
-
-  setTimeout(() => toast.remove(), 3000);
 }
 
 // =============================================
@@ -138,8 +298,9 @@ function navigateTo(pagina) {
   const pageTitle = $('#page-title');
   if (pageTitle) pageTitle.textContent = titulos[pagina];
 
-  const btnAddSpan = $('#btn-add span:last-child');
-  if (btnAddSpan) {
+  // Atualizar texto do botão adicionar
+  const btnAdd = $('#btn-add span:last-child');
+  if (btnAdd) {
     const labels = {
       'dashboard': 'Adicionar',
       'agenda': 'Novo Evento',
@@ -148,9 +309,10 @@ function navigateTo(pagina) {
       'notas': 'Nova Nota',
       'materias': 'Nova Matéria'
     };
-    btnAddSpan.textContent = labels[pagina];
+    btnAdd.textContent = labels[pagina];
   }
 
+  // Atualizar navegação sidebar
   $$('.nav-item').forEach(item => {
     if (item.dataset.nav === pagina) {
       item.classList.add('active-nav');
@@ -159,17 +321,14 @@ function navigateTo(pagina) {
     }
   });
 
+  // Atualizar navegação mobile
   $$('[data-mobile-nav]').forEach(btn => {
     if (btn.dataset.mobileNav === pagina) {
+      btn.classList.add('active');
       btn.classList.remove('text-gray-400');
-      btn.classList.add('text-primary');
-      const span = btn.querySelector('span:last-child');
-      if (span) span.classList.add('font-bold');
     } else {
+      btn.classList.remove('active');
       btn.classList.add('text-gray-400');
-      btn.classList.remove('text-primary');
-      const span = btn.querySelector('span:last-child');
-      if (span) span.classList.remove('font-bold');
     }
   });
 
@@ -197,7 +356,7 @@ function renderPagina(pagina) {
 }
 
 // =============================================
-// FUNÇÕES DE RENDERIZAÇÃO
+// FUNÇÕES DE RENDERIZAÇÃO ATUALIZADAS
 // =============================================
 function renderDashboard() {
   const statEventos = $('#stat-eventos');
@@ -218,15 +377,18 @@ function renderDashboard() {
   if (dashEventos) {
     const eventos = DB.eventos?.slice(0, 3) || [];
     if (eventos.length === 0) {
-      dashEventos.innerHTML = '<li class="text-center text-gray-400 py-4">Nenhum evento</li>';
+      dashEventos.innerHTML = '<li class="text-center text-gray-400 py-8 text-sm">Nenhum evento</li>';
     } else {
       dashEventos.innerHTML = eventos.map(e => `
-        <li class="flex items-center gap-4 cursor-pointer hover:bg-gray-50 p-2 rounded-lg" onclick="editarEvento('${e.id}')">
-          <div class="w-2 h-10 rounded-full" style="background:${getMateriaCor(e.materia_id)}"></div>
+        <li class="flex items-center gap-3 cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors" onclick="editarEvento('${e.id}')">
+          <div class="w-1 h-10 rounded-full" style="background:${getMateriaCor(e.materia_id)}"></div>
           <div class="flex-1">
-            <p class="font-medium text-sm">${e.titulo}</p>
-            <p class="text-xs text-gray-400">${formatarDataCurta(e.data)}</p>
+            <p class="font-medium text-sm text-gray-800">${e.titulo}</p>
+            <p class="text-xs text-gray-500">${formatarDataCurta(e.data)}</p>
           </div>
+          <button class="action-btn edit" onclick="editarEvento('${e.id}'); event.stopPropagation();" title="Editar">
+            <i class="fa-regular fa-pen-to-square"></i>
+          </button>
         </li>
       `).join('');
     }
@@ -237,14 +399,15 @@ function renderDashboard() {
     dashTarefasCount.textContent = tarefas.length;
     
     if (tarefas.length === 0) {
-      dashTarefas.innerHTML = '<div class="text-center text-gray-400 py-4">Nenhuma tarefa</div>';
+      dashTarefas.innerHTML = '<div class="text-center text-gray-400 py-8 text-sm">Nenhuma tarefa</div>';
     } else {
       dashTarefas.innerHTML = tarefas.map(t => `
-        <div class="flex items-center gap-3">
-          <input type="checkbox" class="rounded text-primary h-5 w-5" onchange="toggleTarefa('${t.id}')" ${t.concluida ? 'checked' : ''}>
-          <span class="text-sm text-gray-700 flex-1">${t.titulo}</span>
+        <div class="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+          <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
+                 onchange="toggleTarefa('${t.id}')" ${t.concluida ? 'checked' : ''}>
+          <span class="flex-1 text-sm text-gray-700">${t.titulo}</span>
           <span class="priority-dot ${t.prioridade === 'alta' ? 'bg-red-500' : t.prioridade === 'media' ? 'bg-yellow-500' : 'bg-green-500'}"></span>
-          <span class="text-xs font-bold px-2 py-0.5 rounded-full 
+          <span class="text-xs font-medium px-2 py-1 rounded-full 
                      ${t.prioridade === 'alta' ? 'bg-red-100 text-red-600' : 
                        t.prioridade === 'media' ? 'bg-yellow-100 text-yellow-600' : 
                        'bg-green-100 text-green-600'}">
@@ -259,16 +422,19 @@ function renderDashboard() {
     const diaHoje = new Date().getDay();
     const aulas = DB.horarios?.filter(h => h.dia_semana === diaHoje).slice(0, 2) || [];
     if (aulas.length === 0) {
-      dashAulas.innerHTML = '<div class="text-center text-gray-400 py-4">Nenhuma aula hoje</div>';
+      dashAulas.innerHTML = '<div class="text-center text-gray-400 py-8 text-sm">Nenhuma aula hoje</div>';
     } else {
       dashAulas.innerHTML = aulas.map(a => `
-        <div class="p-3 bg-gray-50 rounded-lg flex justify-between items-center border-l-4 cursor-pointer" 
+        <div class="p-3 bg-gray-50 rounded-lg flex justify-between items-center border-l-4 cursor-pointer hover:shadow-sm transition-shadow" 
              style="border-left-color: ${getMateriaCor(a.materia_id)}"
              onclick="editarHorario('${a.id}')">
           <div>
-            <p class="text-sm font-bold">${getMateriaNome(a.materia_id)}</p>
+            <p class="text-sm font-medium text-gray-800">${getMateriaNome(a.materia_id)}</p>
             <p class="text-xs text-gray-500">${a.hora_inicio} - ${a.hora_fim}</p>
           </div>
+          <button class="action-btn edit" onclick="editarHorario('${a.id}'); event.stopPropagation();" title="Editar">
+            <i class="fa-regular fa-pen-to-square"></i>
+          </button>
         </div>
       `).join('');
     }
@@ -277,11 +443,17 @@ function renderDashboard() {
   if (dashNotas) {
     const notas = DB.notas?.slice(0, 2) || [];
     if (notas.length === 0) {
-      dashNotas.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-4">Nenhuma nota</div>';
+      dashNotas.innerHTML = '<div class="col-span-2 text-center text-gray-400 py-8 text-sm">Nenhuma nota</div>';
     } else {
       dashNotas.innerHTML = notas.map(n => `
-        <div class="p-3 rounded-lg cursor-pointer" style="background:${n.cor || '#4f46e5'}20" onclick="editarNota('${n.id}')">
-          <p class="text-xs font-bold truncate">${n.titulo}</p>
+        <div class="p-3 rounded-lg cursor-pointer hover:shadow-md transition-all relative group" 
+             style="background:${n.cor || '#3b82f6'}10; border: 1px solid ${n.cor || '#3b82f6'}20"
+             onclick="editarNota('${n.id}')">
+          <p class="text-xs font-medium text-gray-800 truncate">${n.titulo || 'Sem título'}</p>
+          <button class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity action-btn delete"
+                  onclick="excluirNota('${n.id}'); event.stopPropagation();" title="Excluir">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
         </div>
       `).join('');
     }
@@ -298,23 +470,34 @@ function renderAgenda() {
   
   if (listaEventos) {
     if (!DB.eventos || DB.eventos.length === 0) {
-      listaEventos.innerHTML = '<div class="text-center text-gray-400 py-12">Nenhum evento cadastrado</div>';
+      listaEventos.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm">Nenhum evento cadastrado</div>';
       return;
     }
 
     listaEventos.innerHTML = DB.eventos.map(e => `
-      <div class="flex gap-4 items-center bg-white p-4 rounded-xl border border-gray-100 mb-4 hover:shadow-md">
-        <div class="hidden sm:block text-center min-w-[60px]">
-          <span class="text-sm font-bold text-primary">${e.data.split('-')[2]}</span>
-          <span class="text-xs text-gray-400 block">${MESES[parseInt(e.data.split('-')[1])-1]}</span>
+      <div class="item-card">
+        <div class="flex items-center gap-3 flex-1" onclick="editarEvento('${e.id}')">
+          <div class="hidden sm:flex flex-col items-center min-w-[50px]">
+            <span class="text-sm font-bold text-blue-600">${e.data.split('-')[2]}</span>
+            <span class="text-xs text-gray-400">${MESES[parseInt(e.data.split('-')[1])-1]}</span>
+          </div>
+          <div class="flex-1">
+            <h4 class="font-medium text-gray-800">${e.titulo}</h4>
+            <p class="text-xs text-gray-500">${getMateriaNome(e.materia_id)} · ${e.hora || '--:--'}</p>
+            ${e.descricao ? `<p class="text-xs text-gray-400 mt-1">${e.descricao}</p>` : ''}
+            ${e.notificar ? `<span class="inline-block mt-1 text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+              <i class="fa-regular fa-bell mr-1"></i>${e.notificar_minutos}min
+            </span>` : ''}
+          </div>
         </div>
-        <div class="flex-1" onclick="editarEvento('${e.id}')">
-          <h4 class="font-bold">${e.titulo}</h4>
-          <p class="text-sm text-gray-500">${getMateriaNome(e.materia_id)} · ${e.hora || '--:--'}</p>
-          ${e.descricao ? `<p class="text-xs text-gray-400">${e.descricao}</p>` : ''}
-          ${e.notificar ? `<span class="inline-block mt-1 text-xs text-indigo-600">🔔 Lembrete ${e.notificar_minutos}min antes</span>` : ''}
+        <div class="flex items-center gap-1">
+          <button class="action-btn edit" onclick="editarEvento('${e.id}')" title="Editar">
+            <i class="fa-regular fa-pen-to-square"></i>
+          </button>
+          <button class="action-btn delete" onclick="excluirEvento('${e.id}')" title="Excluir">
+            <i class="fa-regular fa-trash-can"></i>
+          </button>
         </div>
-        <button class="text-red-500 hover:text-red-700" onclick="excluirEvento('${e.id}')">🗑️</button>
       </div>
     `).join('');
   }
@@ -361,35 +544,40 @@ function renderTarefas() {
   });
 
   if (tarefasFiltradas.length === 0) {
-    listaTarefas.innerHTML = '<div class="text-center text-gray-400 py-12">Nenhuma tarefa encontrada</div>';
+    listaTarefas.innerHTML = '<div class="text-center text-gray-400 py-12 text-sm">Nenhuma tarefa encontrada</div>';
     return;
   }
 
   listaTarefas.innerHTML = tarefasFiltradas.map(t => `
-    <div class="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-between hover:shadow-md mb-3">
-      <div class="flex items-center gap-4 flex-1">
-        <input type="checkbox" class="w-5 h-5 rounded text-primary" 
+    <div class="item-card">
+      <div class="flex items-center gap-3 flex-1">
+        <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
                ${t.concluida ? 'checked' : ''} onchange="toggleTarefa('${t.id}')">
-        <div class="flex items-center gap-2 flex-1">
-          <span class="priority-dot ${t.prioridade === 'alta' ? 'bg-red-500' : t.prioridade === 'media' ? 'bg-yellow-500' : 'bg-green-500'}"></span>
-          <div>
-            <p class="text-sm font-medium ${t.concluida ? 'line-through text-gray-400' : 'text-gray-700'}">${t.titulo}</p>
-            <div class="flex items-center gap-2 mt-1">
-              <span class="text-xs text-gray-500">📚 ${getMateriaNome(t.materia_id)}</span>
-              ${t.prazo ? `<span class="text-xs text-gray-500">📅 ${formatarDataCurta(t.prazo)}</span>` : ''}
-              ${t.notificar ? `<span class="text-xs text-indigo-600">🔔 Lembrete ${t.notificar_minutos}min antes</span>` : ''}
-            </div>
+        <div class="flex-1">
+          <p class="text-sm font-medium ${t.concluida ? 'line-through text-gray-400' : 'text-gray-800'}">${t.titulo}</p>
+          <div class="flex items-center gap-3 mt-1">
+            <span class="text-xs text-gray-500">
+              <i class="fa-regular fa-book-open mr-1"></i>${getMateriaNome(t.materia_id)}
+            </span>
+            ${t.prazo ? `<span class="text-xs text-gray-500">
+              <i class="fa-regular fa-calendar mr-1"></i>${formatarDataCurta(t.prazo)}
+            </span>` : ''}
+            ${t.notificar ? `<span class="text-xs text-blue-600">
+              <i class="fa-regular fa-bell mr-1"></i>${t.notificar_minutos}min
+            </span>` : ''}
           </div>
         </div>
       </div>
-      <div class="flex items-center gap-3">
-        <span class="text-xs font-bold px-3 py-1 rounded-full 
-                   ${t.prioridade === 'alta' ? 'bg-red-100 text-red-600' : 
-                     t.prioridade === 'media' ? 'bg-yellow-100 text-yellow-600' : 
-                     'bg-green-100 text-green-600'}">
-          ${t.prioridade.charAt(0).toUpperCase() + t.prioridade.slice(1)}
+      <div class="flex items-center gap-2">
+        <span class="priority-badge priority-${t.prioridade}">
+          ${t.prioridade}
         </span>
-        <button class="text-red-500 hover:text-red-700" onclick="excluirTarefa('${t.id}')">🗑️</button>
+        <button class="action-btn edit" onclick="editarTarefa('${t.id}')" title="Editar">
+          <i class="fa-regular fa-pen-to-square"></i>
+        </button>
+        <button class="action-btn delete" onclick="excluirTarefa('${t.id}')" title="Excluir">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
       </div>
     </div>
   `).join('');
@@ -400,7 +588,7 @@ function popularSelectMaterias(selectId) {
   if (!select) return;
 
   const valorAtual = select.value;
-  select.innerHTML = '<option value="">Todas</option>' +
+  select.innerHTML = '<option value="">Todas matérias</option>' +
     (DB.materias ? DB.materias.map(m => `<option value="${m.id}">${m.nome}</option>`).join('') : '');
   select.value = valorAtual;
 }
@@ -413,20 +601,24 @@ function renderNotas() {
   if (!listaNotas) return;
 
   if (!DB.notas || DB.notas.length === 0) {
-    listaNotas.innerHTML = '<div class="col-span-3 text-center text-gray-400 py-12">Nenhuma nota cadastrada</div>';
+    listaNotas.innerHTML = '<div class="col-span-3 text-center text-gray-400 py-12 text-sm">Nenhuma nota cadastrada</div>';
     return;
   }
 
   listaNotas.innerHTML = DB.notas.map(n => `
-    <div class="p-6 rounded-xl h-48 relative cursor-pointer hover:shadow-lg transition-shadow group"
-         style="background:${n.cor || '#4f46e5'}20; border: 1px solid ${n.cor || '#4f46e5'}40"
+    <div class="relative p-5 rounded-xl cursor-pointer hover:shadow-lg transition-all group"
+         style="background:${n.cor || '#3b82f6'}10; border: 1px solid ${n.cor || '#3b82f6'}20"
          onclick="editarNota('${n.id}')">
-      <h4 class="font-bold mb-2 truncate">${n.titulo || 'Sem título'}</h4>
+      <h4 class="font-medium text-gray-800 mb-2 truncate pr-8">${n.titulo || 'Sem título'}</h4>
       <p class="text-sm text-gray-600 line-clamp-4">${n.conteudo || 'Sem conteúdo'}</p>
-      <button class="absolute bottom-4 right-4 text-red-500 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
-              onclick="excluirNota('${n.id}'); event.stopPropagation();" title="Excluir nota">
-        🗑️
-      </button>
+      <div class="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <button class="action-btn edit" onclick="editarNota('${n.id}'); event.stopPropagation();" title="Editar">
+          <i class="fa-regular fa-pen-to-square"></i>
+        </button>
+        <button class="action-btn delete" onclick="excluirNota('${n.id}'); event.stopPropagation();" title="Excluir">
+          <i class="fa-regular fa-trash-can"></i>
+        </button>
+      </div>
     </div>
   `).join('');
 }
@@ -437,7 +629,7 @@ function renderMaterias() {
   if (!listaMaterias) return;
 
   if (!DB.materias || DB.materias.length === 0) {
-    listaMaterias.innerHTML = '<div class="col-span-3 text-center text-gray-400 py-12">Nenhuma matéria cadastrada</div>';
+    listaMaterias.innerHTML = '<div class="col-span-3 text-center text-gray-400 py-12 text-sm">Nenhuma matéria cadastrada</div>';
     return;
   }
 
@@ -450,77 +642,75 @@ function renderMaterias() {
     const aulasCount = DB.horarios?.filter(h => h.materia_id === m.id).length || 0;
     
     return `
-      <div class="bg-white p-6 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+      <div class="bg-white p-5 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-all">
         <div class="flex items-start justify-between mb-4">
-          <div class="flex items-center gap-4">
-            <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl font-bold"
-                 style="background:${m.cor || '#4f46e5'}">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white text-base font-bold"
+                 style="background:${m.cor || '#3b82f6'}">
               ${m.nome ? m.nome.charAt(0).toUpperCase() : '?'}
             </div>
             <div>
-              <h4 class="font-bold text-gray-800">${m.nome || 'Sem nome'}</h4>
+              <h4 class="font-medium text-gray-800">${m.nome || 'Sem nome'}</h4>
               <p class="text-xs text-gray-500">${m.professor || 'Sem professor'}</p>
             </div>
           </div>
-          <div class="flex gap-2">
-            <button class="text-blue-500 hover:text-blue-700 p-1 rounded hover:bg-blue-50" 
-                    onclick="editarMateria('${m.id}')">
-              ✏️
+          <div class="flex gap-1">
+            <button class="action-btn edit" onclick="editarMateria('${m.id}')" title="Editar">
+              <i class="fa-regular fa-pen-to-square"></i>
             </button>
-            <button class="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50" 
-                    onclick="excluirMateria('${m.id}')">
-              🗑️
+            <button class="action-btn delete" onclick="excluirMateria('${m.id}')" title="Excluir">
+              <i class="fa-regular fa-trash-can"></i>
             </button>
           </div>
         </div>
         
         <div class="space-y-2 text-sm">
-          <p class="text-gray-600 flex items-center gap-2">
-            <span class="text-gray-400">📍</span>
+          <p class="text-gray-600 flex items-center gap-2 text-xs">
+            <i class="fa-regular fa-building text-gray-400"></i>
             <span>${m.sala || 'Sala não definida'}</span>
           </p>
           
-          <div class="flex gap-4 text-xs">
-            <span class="flex items-center gap-1">
-              <span class="text-indigo-500">📅</span>
+          <div class="flex gap-3 text-xs">
+            <span class="flex items-center gap-1 text-gray-500">
+              <i class="fa-regular fa-calendar text-blue-500"></i>
               <span>${eventosCount} evento(s)</span>
             </span>
-            <span class="flex items-center gap-1">
-              <span class="text-yellow-500">✅</span>
+            <span class="flex items-center gap-1 text-gray-500">
+              <i class="fa-regular fa-square-check text-yellow-500"></i>
               <span>${tarefasCount} tarefa(s)</span>
             </span>
-            <span class="flex items-center gap-1">
-              <span class="text-green-500">🕐</span>
+            <span class="flex items-center gap-1 text-gray-500">
+              <i class="fa-regular fa-clock text-green-500"></i>
               <span>${aulasCount} aula(s)</span>
             </span>
           </div>
         </div>
         
         ${m.max_faltas ? `
-          <div class="mt-4 pt-4 border-t border-gray-100">
+          <div class="mt-4 pt-3 border-t border-gray-100">
             <div class="flex justify-between text-xs mb-1">
               <span class="text-gray-500">Faltas</span>
-              <span class="${status.class}">${m.faltas || 0}/${m.max_faltas} (${status.text})</span>
+              <span class="${status.class}">${m.faltas || 0}/${m.max_faltas}</span>
             </div>
-            <div class="faltas-bar">
-              <div class="faltas-progress" style="width: ${porcentagem}%; background: ${m.cor || '#4f46e5'}"></div>
+            <div class="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all" style="width: ${porcentagem}%; background: ${m.cor || '#3b82f6'}"></div>
             </div>
             <div class="flex gap-2 mt-3">
-              <button class="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg" 
+              <button class="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1.5 rounded-lg transition-colors" 
                       onclick="adicionarFalta('${m.id}'); event.stopPropagation();">
-                + Adicionar falta
+                <i class="fa-solid fa-plus mr-1"></i>Falta
               </button>
-              <button class="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg" 
+              <button class="flex-1 text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-2 py-1.5 rounded-lg transition-colors" 
                       onclick="removerFalta('${m.id}'); event.stopPropagation();" ${(m.faltas || 0) === 0 ? 'disabled' : ''}>
-                - Remover falta
+                <i class="fa-solid fa-minus mr-1"></i>Falta
               </button>
             </div>
           </div>
         ` : `
-          <div class="mt-4 pt-4 border-t border-gray-100">
-            <button class="w-full text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg"
+          <div class="mt-4 pt-3 border-t border-gray-100">
+            <button class="w-full text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg transition-colors"
                     onclick="editarMateria('${m.id}'); event.stopPropagation();">
-              ⚙️ Configurar limite de faltas
+              <i class="fa-solid fa-gear mr-1"></i>Configurar faltas
             </button>
           </div>
         `}
@@ -535,7 +725,7 @@ function renderHorarios() {
   if (!gradeHorarios) return;
 
   if (!DB.horarios || DB.horarios.length === 0) {
-    gradeHorarios.innerHTML = '<div class="p-12 text-center text-gray-400">Nenhum horário cadastrado</div>';
+    gradeHorarios.innerHTML = '<div class="p-12 text-center text-gray-400 text-sm">Nenhum horário cadastrado</div>';
     return;
   }
 
@@ -555,12 +745,12 @@ function renderHorarios() {
 
   let html = `
     <div class="overflow-x-auto">
-      <table class="w-full border-collapse bg-white rounded-xl shadow-sm">
+      <table class="w-full border-collapse">
         <thead>
           <tr class="bg-gray-50">
-            <th class="p-3 text-xs font-bold text-gray-500 border border-gray-200 w-20">HORÁRIO</th>
+            <th class="p-3 text-xs font-medium text-gray-500 border-b border-gray-200 w-20">HORÁRIO</th>
             ${dias.map(dia => `
-              <th class="p-3 text-xs font-bold text-gray-500 border border-gray-200">${dia.nome}</th>
+              <th class="p-3 text-xs font-medium text-gray-500 border-b border-gray-200">${dia.nome}</th>
             `).join('')}
           </tr>
         </thead>
@@ -570,7 +760,7 @@ function renderHorarios() {
   for (let i = 0; i < horarios.length; i++) {
     const hora = horarios[i];
     let linha = `<tr class="hover:bg-gray-50/50">`;
-    linha += `<td class="p-2 text-xs font-medium text-gray-400 border border-gray-100 text-center">${hora}</td>`;
+    linha += `<td class="p-2 text-xs text-gray-400 border-b border-gray-100 text-center">${hora}</td>`;
     
     dias.forEach(dia => {
       const aula = DB.horarios.find(h => 
@@ -584,21 +774,21 @@ function renderHorarios() {
         const rowspan = horaFim - horaInicio;
         
         linha += `
-          <td class="border border-gray-100 p-1 relative" rowspan="${rowspan}">
-            <div class="bg-primary text-white p-2 rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity relative group"
-                 style="background: ${getMateriaCor(aula.materia_id)}; min-height: ${rowspan * 40}px"
+          <td class="border-b border-gray-100 p-1 relative" rowspan="${rowspan}">
+            <div class="bg-blue-50 text-blue-700 p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-blue-100 transition-colors relative group"
+                 style="border-left: 3px solid ${getMateriaCor(aula.materia_id)}"
                  onclick="editarHorario('${aula.id}')">
               <div>${getMateriaNome(aula.materia_id)}</div>
-              <div class="text-[10px] opacity-90">${aula.hora_inicio} - ${aula.hora_fim}</div>
-              <button class="absolute top-1 right-1 opacity-0 group-hover:opacity-100 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center"
+              <div class="text-[10px] opacity-75 mt-1">${aula.hora_inicio} - ${aula.hora_fim}</div>
+              <button class="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center shadow-sm"
                       onclick="excluirHorario('${aula.id}'); event.stopPropagation();" title="Excluir">
-                ✕
+                <i class="fa-solid fa-times"></i>
               </button>
             </div>
           </td>
         `;
       } else {
-        linha += `<td class="border border-gray-100"></td>`;
+        linha += `<td class="border-b border-gray-100"></td>`;
       }
     });
     
@@ -616,13 +806,24 @@ function renderHorarios() {
 }
 
 // =============================================
-// FUNÇÕES CRUD
+// FUNÇÕES CRUD - MATÉRIAS
 // =============================================
+
+function editarMateria(id) {
+  console.log('📝 Editando matéria:', id);
+  const materia = DB.materias?.find(m => m.id === id);
+  if (materia) {
+    itemEditandoId = id;
+    abrirModalMateria(materia);
+  } else {
+    ToastManager.error('Erro', 'Matéria não encontrada');
+  }
+}
 
 async function salvarMateria() {
   const nome = $('#maNome').value.trim();
   if (!nome) {
-    toast('Preencha o nome!', 'error');
+    ToastManager.warning('Atenção', 'Preencha o nome da matéria!');
     return;
   }
 
@@ -644,7 +845,12 @@ async function salvarMateria() {
   fecharModal();
   renderMaterias();
   renderDashboard();
-  toast(itemEditandoId ? 'Matéria atualizada!' : 'Matéria criada!');
+  
+  if (itemEditandoId) {
+    ToastManager.success('Sucesso', 'Matéria atualizada!');
+  } else {
+    ToastManager.success('Sucesso', 'Matéria criada!');
+  }
 }
 
 async function excluirMateria(id) {
@@ -655,7 +861,7 @@ async function excluirMateria(id) {
     }
     renderMaterias();
     renderDashboard();
-    toast('Matéria excluída!', 'error');
+    ToastManager.error('Excluído', 'Matéria removida com sucesso');
   }
 }
 
@@ -667,7 +873,7 @@ async function adicionarFalta(materiaId) {
       await window.data.save('materias', materia);
       DB = window.data.getDB();
       renderMaterias();
-      toast('Falta adicionada!');
+      ToastManager.success('Falta adicionada', `Total: ${materia.faltas}/${materia.max_faltas}`);
     }
   }
 }
@@ -680,8 +886,23 @@ async function removerFalta(materiaId) {
       await window.data.save('materias', materia);
       DB = window.data.getDB();
       renderMaterias();
-      toast('Falta removida!');
+      ToastManager.success('Falta removida', `Total: ${materia.faltas}/${materia.max_faltas}`);
     }
+  }
+}
+
+// =============================================
+// FUNÇÕES CRUD - EVENTOS
+// =============================================
+
+function editarEvento(id) {
+  console.log('📝 Editando evento:', id);
+  const evento = DB.eventos?.find(e => e.id === id);
+  if (evento) {
+    itemEditandoId = id;
+    abrirModalEvento(evento);
+  } else {
+    ToastManager.error('Erro', 'Evento não encontrado');
   }
 }
 
@@ -690,7 +911,7 @@ async function salvarEvento() {
   const data_evento = $('#evData').value;
 
   if (!titulo || !data_evento) {
-    toast('Preencha título e data!', 'error');
+    ToastManager.warning('Atenção', 'Preencha título e data!');
     return;
   }
 
@@ -724,7 +945,12 @@ async function salvarEvento() {
   fecharModal();
   renderAgenda();
   renderDashboard();
-  toast(itemEditandoId ? 'Evento atualizado!' : 'Evento criado!');
+  
+  if (itemEditandoId) {
+    ToastManager.success('Sucesso', 'Evento atualizado!');
+  } else {
+    ToastManager.success('Sucesso', 'Evento criado!');
+  }
 }
 
 async function excluirEvento(id) {
@@ -736,14 +962,29 @@ async function excluirEvento(id) {
     }
     renderAgenda();
     renderDashboard();
-    toast('Evento excluído!', 'error');
+    ToastManager.error('Excluído', 'Evento removido com sucesso');
+  }
+}
+
+// =============================================
+// FUNÇÕES CRUD - TAREFAS
+// =============================================
+
+function editarTarefa(id) {
+  console.log('📝 Editando tarefa:', id);
+  const tarefa = DB.tarefas?.find(t => t.id === id);
+  if (tarefa) {
+    itemEditandoId = id;
+    abrirModalTarefa(tarefa);
+  } else {
+    ToastManager.error('Erro', 'Tarefa não encontrada');
   }
 }
 
 async function salvarTarefa() {
   const titulo = $('#taTitulo').value.trim();
   if (!titulo) {
-    toast('Preencha o título!', 'error');
+    ToastManager.warning('Atenção', 'Preencha o título da tarefa!');
     return;
   }
 
@@ -778,7 +1019,12 @@ async function salvarTarefa() {
   fecharModal();
   renderTarefas();
   renderDashboard();
-  toast(itemEditandoId ? 'Tarefa atualizada!' : 'Tarefa criada!');
+  
+  if (itemEditandoId) {
+    ToastManager.success('Sucesso', 'Tarefa atualizada!');
+  } else {
+    ToastManager.success('Sucesso', 'Tarefa criada!');
+  }
 }
 
 async function excluirTarefa(id) {
@@ -790,7 +1036,7 @@ async function excluirTarefa(id) {
     }
     renderTarefas();
     renderDashboard();
-    toast('Tarefa excluída!', 'error');
+    ToastManager.error('Excluído', 'Tarefa removida com sucesso');
   }
 }
 
@@ -803,7 +1049,26 @@ async function toggleTarefa(id) {
       DB = window.data.getDB();
       renderTarefas();
       renderDashboard();
+      
+      if (tarefa.concluida) {
+        ToastManager.success('Tarefa concluída', 'Parabéns! 🎉');
+      }
     }
+  }
+}
+
+// =============================================
+// FUNÇÕES CRUD - NOTAS
+// =============================================
+
+function editarNota(id) {
+  console.log('📝 Editando nota:', id);
+  const nota = DB.notas?.find(n => n.id === id);
+  if (nota) {
+    itemEditandoId = id;
+    abrirModalNota(nota);
+  } else {
+    ToastManager.error('Erro', 'Nota não encontrada');
   }
 }
 
@@ -827,7 +1092,12 @@ async function salvarNota() {
   fecharModal();
   renderNotas();
   renderDashboard();
-  toast(itemEditandoId ? 'Nota atualizada!' : 'Nota criada!');
+  
+  if (itemEditandoId) {
+    ToastManager.success('Sucesso', 'Nota atualizada!');
+  } else {
+    ToastManager.success('Sucesso', 'Nota criada!');
+  }
 }
 
 async function excluirNota(id) {
@@ -838,7 +1108,22 @@ async function excluirNota(id) {
     }
     renderNotas();
     renderDashboard();
-    toast('Nota excluída!', 'error');
+    ToastManager.error('Excluído', 'Nota removida com sucesso');
+  }
+}
+
+// =============================================
+// FUNÇÕES CRUD - HORÁRIOS
+// =============================================
+
+function editarHorario(id) {
+  console.log('📝 Editando horário:', id);
+  const horario = DB.horarios?.find(h => h.id === id);
+  if (horario) {
+    itemEditandoId = id;
+    abrirModalHorario(horario);
+  } else {
+    ToastManager.error('Erro', 'Horário não encontrado');
   }
 }
 
@@ -849,12 +1134,12 @@ async function salvarHorario() {
   const horaFim = $('#hoFim').value;
 
   if (!materiaId || !diaSemana || !horaInicio || !horaFim) {
-    toast('Preencha todos os campos!', 'error');
+    ToastManager.warning('Atenção', 'Preencha todos os campos!');
     return;
   }
 
   if (horaInicio >= horaFim) {
-    toast('Horário de início deve ser antes do fim!', 'error');
+    ToastManager.warning('Horário inválido', 'Início deve ser antes do fim!');
     return;
   }
 
@@ -866,7 +1151,7 @@ async function salvarHorario() {
   );
 
   if (conflito) {
-    toast('Conflito de horário!', 'error');
+    ToastManager.warning('Conflito de horário', 'Já existe uma aula neste período!');
     return;
   }
 
@@ -886,7 +1171,12 @@ async function salvarHorario() {
   fecharModal();
   renderHorarios();
   renderDashboard();
-  toast(itemEditandoId ? 'Horário atualizado!' : 'Horário adicionado!');
+  
+  if (itemEditandoId) {
+    ToastManager.success('Sucesso', 'Horário atualizado!');
+  } else {
+    ToastManager.success('Sucesso', 'Horário adicionado!');
+  }
 }
 
 async function excluirHorario(id) {
@@ -897,7 +1187,7 @@ async function excluirHorario(id) {
     }
     renderHorarios();
     renderDashboard();
-    toast('Horário excluído!', 'error');
+    ToastManager.error('Excluído', 'Horário removido com sucesso');
   }
 }
 
@@ -932,40 +1222,40 @@ function abrirModalMateria(materia = null) {
   
   const conteudo = `
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Nome *</label>
-      <input type="text" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Nome *</label>
+      <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
              id="maNome" value="${materia?.nome || ''}" placeholder="Ex: Cálculo I" required>
     </div>
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Professor</label>
-        <input type="text" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+        <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Professor</label>
+        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
                id="maProfessor" value="${materia?.professor || ''}" placeholder="Prof. Silva">
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Sala</label>
-        <input type="text" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+        <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Sala</label>
+        <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
                id="maSala" value="${materia?.sala || ''}" placeholder="B-204">
       </div>
     </div>
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Máximo de Faltas</label>
-        <input type="number" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+        <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Máximo de Faltas</label>
+        <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
                id="maMaxFaltas" value="${materia?.max_faltas || ''}" placeholder="Ex: 18" min="0">
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Faltas Atuais</label>
-        <input type="number" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+        <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Faltas Atuais</label>
+        <input type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
                id="maFaltas" value="${materia?.faltas || 0}" placeholder="0" min="0">
       </div>
     </div>
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Cor</label>
-      <input type="color" class="w-full h-10 rounded-xl border-gray-200" 
-             id="maCor" value="${materia?.cor || '#4f46e5'}">
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Cor</label>
+      <input type="color" class="w-full h-10 rounded-lg border border-gray-300" 
+             id="maCor" value="${materia?.cor || '#3b82f6'}">
     </div>
-    <button type="button" class="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 mt-4" 
+    <button type="button" class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors mt-4" 
             onclick="salvarMateria()">
       ${materia ? 'Atualizar' : 'Salvar'}
     </button>
@@ -983,14 +1273,14 @@ function abrirModalEvento(evento = null) {
 
   const conteudo = `
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Título *</label>
-      <input type="text" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Título *</label>
+      <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
              id="evTitulo" value="${evento?.titulo || ''}" placeholder="Ex: Prova de Cálculo" required>
     </div>
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Tipo</label>
-        <select class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" id="evTipo">
+        <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Tipo</label>
+        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="evTipo">
           <option value="prova" ${evento?.tipo === 'prova' ? 'selected' : ''}>Prova</option>
           <option value="trabalho" ${evento?.tipo === 'trabalho' ? 'selected' : ''}>Trabalho</option>
           <option value="aula" ${evento?.tipo === 'aula' ? 'selected' : ''}>Aula</option>
@@ -998,41 +1288,41 @@ function abrirModalEvento(evento = null) {
         </select>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Matéria</label>
-        <select class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" id="evMateria">
+        <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Matéria</label>
+        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="evMateria">
           <option value="">Sem matéria</option>
           ${materiasOptions}
         </select>
       </div>
     </div>
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Data *</label>
-        <input type="date" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+        <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Data *</label>
+        <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
                id="evData" value="${evento?.data || hoje()}" required>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Hora</label>
-        <input type="time" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+        <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Hora</label>
+        <input type="time" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
                id="evHora" value="${evento?.hora || ''}">
       </div>
     </div>
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Descrição</label>
-      <textarea class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Descrição</label>
+      <textarea class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
                 id="evDesc" rows="3">${evento?.descricao || ''}</textarea>
     </div>
     
     <div class="border-t border-gray-200 pt-4 mt-4">
-      <h4 class="font-semibold text-gray-700 mb-2">⏰ Lembrete</h4>
+      <h4 class="font-medium text-gray-700 mb-2">⏰ Lembrete</h4>
       <div class="flex items-center gap-3 mb-3">
-        <input type="checkbox" id="evNotificar" class="w-5 h-5 rounded text-primary" ${evento?.notificar ? 'checked' : ''}>
+        <input type="checkbox" id="evNotificar" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${evento?.notificar ? 'checked' : ''}>
         <label for="evNotificar" class="text-sm text-gray-700">Ativar lembrete</label>
       </div>
       <div id="evOpcoesLembrete" class="space-y-3 ${evento?.notificar ? '' : 'hidden'}">
         <div>
-          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Notificar</label>
-          <select class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" id="evNotificarMinutos">
+          <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Notificar</label>
+          <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="evNotificarMinutos">
             <option value="5" ${evento?.notificar_minutos === 5 ? 'selected' : ''}>5 minutos antes</option>
             <option value="15" ${evento?.notificar_minutos === 15 ? 'selected' : ''}>15 minutos antes</option>
             <option value="30" ${evento?.notificar_minutos === 30 ? 'selected' : ''}>30 minutos antes</option>
@@ -1044,7 +1334,7 @@ function abrirModalEvento(evento = null) {
       </div>
     </div>
     
-    <button type="button" class="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 mt-4" 
+    <button type="button" class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors mt-4" 
             onclick="salvarEvento()">
       ${evento ? 'Atualizar' : 'Salvar'}
     </button>
@@ -1074,24 +1364,24 @@ function abrirModalTarefa(tarefa = null) {
 
   const conteudo = `
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Título *</label>
-      <input type="text" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Título *</label>
+      <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
              id="taTitulo" value="${tarefa?.titulo || ''}" placeholder="Ex: Estudar para prova" required>
     </div>
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Prioridade</label>
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Prioridade</label>
       <div class="grid grid-cols-3 gap-2">
-        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer ${tarefa?.prioridade === 'baixa' ? 'border-green-500 bg-green-50' : 'border-gray-200'}">
+        <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer ${tarefa?.prioridade === 'baixa' ? 'border-green-500 bg-green-50' : 'border-gray-200'}">
           <input type="radio" name="prioridade" value="baixa" class="hidden" ${tarefa?.prioridade === 'baixa' ? 'checked' : ''}>
           <span class="priority-dot bg-green-500"></span>
           <span class="text-sm">Baixa</span>
         </label>
-        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer ${tarefa?.prioridade === 'media' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200'}">
+        <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer ${tarefa?.prioridade === 'media' ? 'border-yellow-500 bg-yellow-50' : 'border-gray-200'}">
           <input type="radio" name="prioridade" value="media" class="hidden" ${tarefa?.prioridade === 'media' ? 'checked' : ''}>
           <span class="priority-dot bg-yellow-500"></span>
           <span class="text-sm">Média</span>
         </label>
-        <label class="flex items-center gap-2 p-2 border rounded-lg cursor-pointer ${tarefa?.prioridade === 'alta' ? 'border-red-500 bg-red-50' : 'border-gray-200'}">
+        <label class="flex items-center justify-center gap-1 p-2 border rounded-lg cursor-pointer ${tarefa?.prioridade === 'alta' ? 'border-red-500 bg-red-50' : 'border-gray-200'}">
           <input type="radio" name="prioridade" value="alta" class="hidden" ${tarefa?.prioridade === 'alta' ? 'checked' : ''}>
           <span class="priority-dot bg-red-500"></span>
           <span class="text-sm">Alta</span>
@@ -1099,28 +1389,28 @@ function abrirModalTarefa(tarefa = null) {
       </div>
     </div>
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Matéria</label>
-      <select class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" id="taMateria">
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Matéria</label>
+      <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="taMateria">
         <option value="">Sem matéria</option>
         ${materiasOptions}
       </select>
     </div>
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Prazo</label>
-      <input type="date" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Prazo</label>
+      <input type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
              id="taPrazo" value="${tarefa?.prazo || ''}">
     </div>
     
     <div class="border-t border-gray-200 pt-4 mt-4">
-      <h4 class="font-semibold text-gray-700 mb-2">⏰ Lembrete</h4>
+      <h4 class="font-medium text-gray-700 mb-2">⏰ Lembrete</h4>
       <div class="flex items-center gap-3 mb-3">
-        <input type="checkbox" id="taNotificar" class="w-5 h-5 rounded text-primary" ${tarefa?.notificar ? 'checked' : ''}>
+        <input type="checkbox" id="taNotificar" class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${tarefa?.notificar ? 'checked' : ''}>
         <label for="taNotificar" class="text-sm text-gray-700">Ativar lembrete</label>
       </div>
       <div id="taOpcoesLembrete" class="space-y-3 ${tarefa?.notificar ? '' : 'hidden'}">
         <div>
-          <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Notificar</label>
-          <select class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" id="taNotificarMinutos">
+          <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Notificar</label>
+          <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="taNotificarMinutos">
             <option value="60" ${tarefa?.notificar_minutos === 60 ? 'selected' : ''}>1 hora antes</option>
             <option value="120" ${tarefa?.notificar_minutos === 120 ? 'selected' : ''}>2 horas antes</option>
             <option value="240" ${tarefa?.notificar_minutos === 240 ? 'selected' : ''}>4 horas antes</option>
@@ -1131,7 +1421,7 @@ function abrirModalTarefa(tarefa = null) {
       </div>
     </div>
     
-    <button type="button" class="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 mt-4" 
+    <button type="button" class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors mt-4" 
             onclick="salvarTarefa()">
       ${tarefa ? 'Atualizar' : 'Salvar'}
     </button>
@@ -1172,31 +1462,31 @@ function abrirModalHorario(horario = null) {
 
   const conteudo = `
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Matéria *</label>
-      <select class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" id="hoMateria" required>
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Matéria *</label>
+      <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="hoMateria" required>
         <option value="">Selecione...</option>
         ${materiasOptions}
       </select>
     </div>
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Dia da Semana *</label>
-      <select class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" id="hoDia" required>
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Dia da Semana *</label>
+      <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="hoDia" required>
         ${diasOptions}
       </select>
     </div>
-    <div class="grid grid-cols-2 gap-4">
+    <div class="grid grid-cols-2 gap-3">
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Início *</label>
-        <input type="time" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+        <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Início *</label>
+        <input type="time" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
                id="hoInicio" value="${horario?.hora_inicio || '08:00'}" required>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Fim *</label>
-        <input type="time" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+        <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Fim *</label>
+        <input type="time" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
                id="hoFim" value="${horario?.hora_fim || '10:00'}" required>
       </div>
     </div>
-    <button type="button" class="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 mt-4" 
+    <button type="button" class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors mt-4" 
             onclick="salvarHorario()">
       ${horario ? 'Atualizar' : 'Salvar'}
     </button>
@@ -1214,28 +1504,28 @@ function abrirModalNota(nota = null) {
 
   const conteudo = `
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Título</label>
-      <input type="text" class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Título</label>
+      <input type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
              id="notaTitulo" value="${nota?.titulo || ''}" placeholder="Título da nota">
     </div>
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Matéria</label>
-      <select class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" id="notaMateria">
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Matéria</label>
+      <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" id="notaMateria">
         <option value="">Sem matéria</option>
         ${materiasOptions}
       </select>
     </div>
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Conteúdo</label>
-      <textarea class="w-full rounded-xl border-gray-200 focus:ring-primary px-4 py-2" 
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Conteúdo</label>
+      <textarea class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-blue-500 focus:ring-1 focus:ring-blue-500" 
                 id="notaConteudo" rows="6" placeholder="Escreva sua nota aqui...">${nota?.conteudo || ''}</textarea>
     </div>
     <div>
-      <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Cor</label>
-      <input type="color" class="w-full h-10 rounded-xl border-gray-200" 
-             id="notaCor" value="${nota?.cor || '#4f46e5'}">
+      <label class="block text-xs font-medium text-gray-600 uppercase tracking-wider mb-1">Cor</label>
+      <input type="color" class="w-full h-10 rounded-lg border border-gray-300" 
+             id="notaCor" value="${nota?.cor || '#3b82f6'}">
     </div>
-    <button type="button" class="w-full bg-primary text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 mt-4" 
+    <button type="button" class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors mt-4" 
             onclick="salvarNota()">
       ${nota ? 'Atualizar' : 'Salvar'}
     </button>
@@ -1277,11 +1567,11 @@ async function importarArquivo() {
               DB = window.data.getDB();
             }
             navigateTo(paginaAtual);
-            toast('Dados importados com sucesso!');
+            ToastManager.success('Sucesso', 'Dados importados!');
             fecharModalImportExport();
           }
         } catch (erro) {
-          toast('Arquivo inválido!', 'error');
+          ToastManager.error('Erro', 'Arquivo inválido!');
         }
       };
       reader.readAsText(file);
@@ -1298,7 +1588,7 @@ function exportarArquivo() {
   a.download = `uniagenda_${hoje()}.json`;
   a.click();
   URL.revokeObjectURL(url);
-  toast('Dados exportados com sucesso!');
+  ToastManager.success('Sucesso', 'Dados exportados!');
   fecharModalImportExport();
 }
 
@@ -1562,6 +1852,21 @@ function setupEventListeners() {
     }
   });
 
+  $('#menu-btn')?.addEventListener('click', () => {
+    const sidebar = $('#sidebar');
+    const overlay = $('#sidebar-overlay');
+    if (sidebar && overlay) {
+      sidebar.classList.remove('-translate-x-full');
+      overlay.classList.remove('hidden');
+    }
+  });
+
+  // Botão de sync manual
+  $('#sync-now-btn')?.addEventListener('click', async () => {
+    ToastManager.info('Sincronizando', 'Aguarde...');
+    await window.data?.syncAll();
+  });
+
   const notificacaoBtn = $('#notificacao-btn');
   if (notificacaoBtn) {
     if (verificarPermissaoNotificacoes()) {
@@ -1573,12 +1878,12 @@ function setupEventListeners() {
     notificacaoBtn.addEventListener('click', async () => {
       const granted = await solicitarPermissaoNotificacoes();
       if (granted) {
-        toast('✅ Notificações ativadas!');
         notificacaoBtn.classList.remove('bg-indigo-500');
         notificacaoBtn.classList.add('bg-green-500');
         reagendarTodasNotificacoes();
+        ToastManager.success('Notificações ativadas!', 'Você receberá lembretes dos eventos');
       } else {
-        toast('❌ Permissão negada', 'error');
+        ToastManager.error('Permissão negada', 'Ative manualmente nas configurações');
       }
     });
   }
@@ -1587,16 +1892,46 @@ function setupEventListeners() {
   document.getElementById('logout-btn')?.addEventListener('click', () => window.auth?.logout());
 }
 
+// Função para limpar dados inválidos do localStorage
+function limparDadosInvalidos() {
+  try {
+    const saved = localStorage.getItem('uniagenda_db');
+    if (saved) {
+      const dados = JSON.parse(saved);
+      let modificado = false;
+      
+      // Regex para UUID válido
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+      
+      // Para cada tabela, filtrar apenas UUIDs válidos
+      const tabelas = ['materias', 'eventos', 'tarefas', 'notas', 'horarios'];
+      tabelas.forEach(tabela => {
+        if (dados[tabela] && Array.isArray(dados[tabela])) {
+          const originalLength = dados[tabela].length;
+          dados[tabela] = dados[tabela].filter(item => uuidRegex.test(item.id));
+          if (dados[tabela].length !== originalLength) {
+            modificado = true;
+            console.log(`🧹 Removidos ${originalLength - dados[tabela].length} itens inválidos de ${tabela}`);
+          }
+        }
+      });
+      
+      if (modificado) {
+        localStorage.setItem('uniagenda_db', JSON.stringify(dados));
+        console.log('✅ Dados inválidos removidos do localStorage');
+      }
+    }
+  } catch (e) {
+    console.error('Erro ao limpar dados inválidos:', e);
+  }
+}
 async function init() {
   console.log('🎓 Inicializando UniAgenda...');
-  
+  limparDadosInvalidos();
   const isAuth = await checkAuth();
   if (!isAuth) return;
   
-  if (window.auth) {
-    await window.auth.init();
-  }
-  
+  // Inicializar APENAS o DataService (que já faz tudo)
   if (window.data) {
     await window.data.init();
     DB = window.data.getDB();
@@ -1605,13 +1940,13 @@ async function init() {
   setupEventListeners();
   
   window.addEventListener('online', () => {
-    toast('📶 Conexão restabelecida - sincronizando...');
-    window.data?.syncWithServer();
+    ToastManager.info('Conexão restabelecida', 'Sincronizando dados...');
+    window.data?.syncAll();
     updateConnectionStatus();
   });
   
   window.addEventListener('offline', () => {
-    toast('📴 Modo offline', 'error');
+    ToastManager.warning('Modo offline', 'As alterações serão sincronizadas quando voltar');
     updateConnectionStatus();
   });
   
@@ -1622,6 +1957,9 @@ async function init() {
   }
   
   console.log('✅ UniAgenda inicializado!');
+  
+  // Verificar funções globais
+  setTimeout(() => window.debugFunctions?.check(), 1000);
 }
 
 if (document.readyState === 'loading') {
@@ -1656,3 +1994,11 @@ window.fecharModalImportExport = fecharModalImportExport;
 window.solicitarPermissaoNotificacoes = solicitarPermissaoNotificacoes;
 window.mostrarNotificacao = mostrarNotificacao;
 window.reagendarTodasNotificacoes = reagendarTodasNotificacoes;
+
+// Garantir que as funções estão disponíveis globalmente
+window.addEventListener('DOMContentLoaded', () => {
+  console.log('✅ Verificação de funções:');
+  console.log('   editarMateria:', typeof window.editarMateria);
+  console.log('   excluirMateria:', typeof window.excluirMateria);
+  console.log('   adicionarFalta:', typeof window.adicionarFalta);
+});

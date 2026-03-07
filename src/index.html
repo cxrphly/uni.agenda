@@ -5,189 +5,564 @@
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>UniAgenda - Seu Planejador Universitário</title>
   
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
   
   <!-- Google Fonts: Inter -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
   
   <!-- CSS Personalizado -->
   <link rel="stylesheet" href="/css/style.css">
   
   <!-- PWA Meta Tags -->
-  <meta name="notification-permission" content="default">
-  <meta name="theme-color" content="#4f46e5">
+  <meta name="theme-color" content="#3b82f6">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="UniAgenda">
-  <meta name="application-name" content="UniAgenda">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="format-detection" content="telephone=no">
-  <meta name="msapplication-TileColor" content="#4f46e5">
-
-  <!-- Ícones PWA -->
-  <link rel="icon" type="image/png" sizes="48x48" href="/icons/maskable_icon_x48.png">
-  <link rel="icon" type="image/png" sizes="72x72" href="/icons/maskable_icon_x72.png">
-  <link rel="icon" type="image/png" sizes="96x96" href="/icons/maskable_icon_x96.png">
-  <link rel="icon" type="image/png" sizes="128x128" href="/icons/maskable_icon_x128.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/maskable_icon_x192.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png">
-  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="shortcut icon" href="/icons/favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/maskable_icon_x192.png">
   
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: '#4f46e5',
-            secondary: '#6366f1',
-          },
-          borderRadius: {
-            'xl': '1rem',
-          }
-        }
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #f3f4f6;
+    }
+    
+    /* Loader Animado com GIF */
+    .loader-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      transition: opacity 0.5s ease;
+    }
+    .loader-container.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .loader-content {
+      text-align: center;
+    }
+    .loader-gif {
+      width: 120px;
+      height: 120px;
+      margin-bottom: 20px;
+      border-radius: 20px;
+      background: #f3f4f6;
+      padding: 10px;
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+    }
+    .loader-gif img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .loader-text {
+      font-size: 24px;
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+    .loader-subtext {
+      color: #6b7280;
+      font-size: 14px;
+    }
+    
+    /* Toast Container */
+    .toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-width: 350px;
+      pointer-events: none;
+    }
+    
+    .toast {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      animation: toastSlideIn 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+      border-left: 4px solid transparent;
+      pointer-events: auto;
+      width: 100%;
+    }
+    
+    .toast.success { border-left-color: #10b981; }
+    .toast.success .toast-icon { background: #10b981; }
+    .toast.error { border-left-color: #ef4444; }
+    .toast.error .toast-icon { background: #ef4444; }
+    .toast.warning { border-left-color: #f59e0b; }
+    .toast.warning .toast-icon { background: #f59e0b; }
+    .toast.info { border-left-color: #3b82f6; }
+    .toast.info .toast-icon { background: #3b82f6; }
+    
+    .toast-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    
+    .toast-content {
+      flex: 1;
+    }
+    
+    .toast-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: #1f2937;
+      margin-bottom: 2px;
+    }
+    
+    .toast-message {
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.4;
+    }
+    
+    .toast-close {
+      color: #9ca3af;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .toast-close:hover {
+      color: #4b5563;
+      background: #f3f4f6;
+    }
+    
+    @keyframes toastSlideIn {
+      from {
+        opacity: 0;
+        transform: translateX(100%) scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
       }
     }
-  </script>
+    
+    @keyframes toastSlideOut {
+      to {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+    }
+    
+    .toast.removing {
+      animation: toastSlideOut 0.2s ease forwards;
+    }
+    
+    /* Sidebar */
+    .sidebar-transition { transition: transform 0.3s; }
+    .active-nav {
+      background-color: #3b82f6 !important;
+      color: white !important;
+    }
+    .active-nav i { color: white !important; }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    /* Cards */
+    .stat-card {
+      transition: all 0.2s;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+    }
+    
+    /* Ícones de ação */
+    .action-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      cursor: pointer;
+    }
+    
+    .action-btn.edit {
+      color: #3b82f6;
+      background: #eff6ff;
+    }
+    .action-btn.edit:hover {
+      background: #dbeafe;
+      transform: scale(1.05);
+    }
+    
+    .action-btn.delete {
+      color: #ef4444;
+      background: #fef2f2;
+    }
+    .action-btn.delete:hover {
+      background: #fee2e2;
+      transform: scale(1.05);
+    }
+    
+    .action-btn.view {
+      color: #10b981;
+      background: #f0fdf4;
+    }
+    .action-btn.view:hover {
+      background: #dcfce7;
+      transform: scale(1.05);
+    }
+    
+    .action-btn.sync {
+      color: #8b5cf6;
+      background: #f5f3ff;
+    }
+    .action-btn.sync:hover {
+      background: #ede9fe;
+      transform: scale(1.05);
+    }
+    
+    /* Cards de itens */
+    .item-card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      border: 1px solid #f1f5f9;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .item-card:hover {
+      border-color: #cbd5e1;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    
+    /* Prioridade badges */
+    .priority-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 999px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .priority-badge.priority-alta {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    .priority-badge.priority-media {
+      background: #fef3c7;
+      color: #d97706;
+    }
+    .priority-badge.priority-baixa {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+    
+    /* Priority dot */
+    .priority-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 4px;
+    }
+    
+    /* Mobile */
+    .mobile-nav-item.active {
+      color: #3b82f6;
+    }
+    .mobile-nav-item.active span:last-child {
+      font-weight: 600;
+    }
+    
+    /* Line clamp */
+    .line-clamp-4 {
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    
+    /* Faltas */
+    .faltas-bar {
+      width: 100%;
+      height: 6px;
+      background-color: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .faltas-progress {
+      height: 100%;
+      transition: width 0.3s ease;
+    }
+    .faltas-alert { color: #ef4444; font-weight: 600; }
+    .faltas-warning { color: #f59e0b; font-weight: 600; }
+    .faltas-ok { color: #10b981; font-weight: 600; }
+  </style>
 </head>
-
 <body class="overflow-x-hidden">
+  
   <!-- INSTALL PWA -->
   <div id="install-pwa-container" class="fixed top-4 left-0 right-0 flex justify-center pointer-events-none hidden z-[9999]">
-    <div class="bg-white rounded-2xl shadow-2xl border border-indigo-100 p-4 flex items-center gap-4 pointer-events-auto max-w-md mx-4 animate-slideDown">
-      <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center text-2xl">🎓</div>
-      <div class="flex-1">
-        <h3 class="font-bold text-gray-800">Instalar UniAgenda</h3>
-        <p class="text-xs text-gray-500">Instale como app para melhor experiência</p>
+    <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-4 flex items-center gap-3 pointer-events-auto max-w-md mx-4">
+      <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+        <i class="fa-solid fa-download"></i>
       </div>
-      <button id="install-pwa-btn" class="bg-primary text-white px-5 py-2 rounded-xl text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-md whitespace-nowrap">Instalar</button>
-      <button id="close-install-btn" class="text-gray-400 hover:text-gray-600 text-xl">✕</button>
+      <div class="flex-1">
+        <h3 class="font-medium text-gray-900">Instalar UniAgenda</h3>
+        <p class="text-xs text-gray-500">Melhor experiência como app</p>
+      </div>
+      <button id="install-pwa-btn" class="bg-blue-600 text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+        Instalar
+      </button>
+      <button id="close-install-btn" class="text-gray-400 hover:text-gray-600">
+        <i class="fa-solid fa-times"></i>
+      </button>
     </div>
   </div>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="toast-container"></div>
 
   <!-- SYNC INDICATOR -->
-  <div id="sync-indicator" class="fixed top-20 right-4 z-[9998] hidden">
-    <div class="bg-blue-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg flex items-center gap-2 animate-pulse">
-      <div class="w-2 h-2 bg-white rounded-full animate-ping"></div>
+  <div id="sync-indicator" class="fixed top-4 left-1/2 -translate-x-1/2 z-[9998] hidden">
+    <div class="bg-blue-600 text-white px-4 py-2 rounded-full text-sm shadow-lg flex items-center gap-2">
+      <i class="fa-solid fa-sync fa-spin"></i>
       <span id="sync-message">Sincronizando...</span>
     </div>
-  </div>
-
-  <!-- LOGOUT BUTTON -->
-  <div id="logout-container" class="fixed top-4 right-4 z-[9998] hidden">
-    <button id="logout-btn" class="bg-red-500 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:bg-red-600 transition-colors shadow-lg flex items-center gap-2">
-      <span>🚪</span> Sair
-    </button>
   </div>
 
   <!-- LOADER -->
   <div id="loader" class="loader-container">
     <div class="loader-content">
       <div class="loader-gif">
-        <img src="https://em-content.zobj.net/source/animated-noto-color-emoji/427/graduation-cap_1f393.gif" alt="Carregando..." class="w-full h-full object-contain">
+        <img src="https://em-content.zobj.net/source/animated-noto-color-emoji/427/graduation-cap_1f393.gif" alt="Carregando...">
       </div>
       <div class="loader-text">UniAgenda</div>
       <div class="loader-subtext">Seu planejador universitário</div>
-      <div class="loader-progress">
-        <div class="loader-progress-bar"></div>
-      </div>
     </div>
   </div>
 
   <!-- SIDEBAR -->
   <aside class="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform -translate-x-full lg:translate-x-0 sidebar-transition flex flex-col" id="sidebar">
-    <div class="p-6 flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-primary flex items-center gap-2"><span>🎓</span> UniAgenda</h1>
-      <button class="lg:hidden text-gray-500" id="close-sidebar">
-        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewbox="0 0 24 24">
-          <path d="M6 18L18 6M6 6l12 12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
-        </svg>
+    <div class="p-5 flex items-center justify-between border-b border-gray-100">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+          <i class="fa-solid fa-graduation-cap text-white text-sm"></i>
+        </div>
+        <span class="text-lg font-bold text-gray-900">UniAgenda</span>
+      </div>
+      <button class="lg:hidden text-gray-400 hover:text-gray-600" id="close-sidebar">
+        <i class="fa-solid fa-times"></i>
       </button>
     </div>
-    <nav class="flex-1 px-4 space-y-2 mt-4">
-      <button class="nav-item w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-primary rounded-xl transition-all" data-nav="dashboard"><span>🏠</span> Início</button>
-      <button class="nav-item w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-primary rounded-xl transition-all" data-nav="agenda"><span>📅</span> Agenda</button>
-      <button class="nav-item w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-primary rounded-xl transition-all" data-nav="horarios"><span>🕐</span> Horários</button>
-      <button class="nav-item w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-primary rounded-xl transition-all" data-nav="tarefas"><span>✅</span> Tarefas</button>
-      <button class="nav-item w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-primary rounded-xl transition-all" data-nav="notas"><span>📝</span> Notas</button>
-      <button class="nav-item w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-indigo-50 hover:text-primary rounded-xl transition-all" data-nav="materias"><span>📚</span> Matérias</button>
+    
+    <nav class="flex-1 px-3 py-4 space-y-1">
+      <button class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" data-nav="dashboard">
+        <i class="fa-solid fa-home w-5"></i>
+        <span class="text-sm">Início</span>
+      </button>
+      <button class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" data-nav="agenda">
+        <i class="fa-regular fa-calendar w-5"></i>
+        <span class="text-sm">Agenda</span>
+      </button>
+      <button class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" data-nav="horarios">
+        <i class="fa-regular fa-clock w-5"></i>
+        <span class="text-sm">Horários</span>
+      </button>
+      <button class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" data-nav="tarefas">
+        <i class="fa-regular fa-square-check w-5"></i>
+        <span class="text-sm">Tarefas</span>
+      </button>
+      <button class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" data-nav="notas">
+        <i class="fa-regular fa-note-sticky w-5"></i>
+        <span class="text-sm">Notas</span>
+      </button>
+      <button class="nav-item w-full flex items-center gap-3 px-3 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" data-nav="materias">
+        <i class="fa-solid fa-book-open w-5"></i>
+        <span class="text-sm">Matérias</span>
+      </button>
     </nav>
-    <div class="p-4 border-t border-gray-100 space-y-2">
-      <button class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" id="btn-importar"><span>📂</span> Importar</button>
-      <button class="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" id="btn-exportar"><span>💾</span> Exportar</button>
+
+    <div class="p-3 border-t border-gray-100 space-y-1">
+      <button class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" id="btn-importar">
+        <i class="fa-solid fa-upload w-5"></i>
+        <span>Importar</span>
+      </button>
+      <button class="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors" id="btn-exportar">
+        <i class="fa-solid fa-download w-5"></i>
+        <span>Exportar</span>
+      </button>
     </div>
   </aside>
   
-  <div class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
+  <div class="fixed inset-0 bg-black/20 z-40 hidden lg:hidden" id="sidebar-overlay"></div>
 
   <!-- MAIN CONTENT -->
-  <div class="lg:ml-64 min-h-screen flex flex-col pb-20 lg:pb-0 transition-opacity duration-300" id="main-content">
-    <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 px-4 py-4 sm:px-8 flex items-center justify-between">
-      <div class="flex items-center gap-4">
+  <div class="lg:ml-64 min-h-screen flex flex-col" id="main-content">
+    
+    <!-- Header -->
+    <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-gray-200 px-4 py-3 sm:px-6 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <button class="lg:hidden text-gray-500 hover:text-gray-700" id="menu-btn">
+          <i class="fa-solid fa-bars text-xl"></i>
+        </button>
         <h2 class="text-lg font-semibold text-gray-800" id="page-title">Início</h2>
       </div>
-      <button class="bg-primary text-white px-4 py-2 rounded-xl text-sm font-medium shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all flex items-center gap-2" id="btn-add">
-        <span class="text-lg leading-none">+</span> <span class="hidden sm:inline">Adicionar</span>
-      </button>
+      
+      <div class="flex items-center gap-2">
+        <!-- Sync Button -->
+        <button id="sync-now-btn" class="action-btn sync" title="Sincronizar">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+        
+        <!-- Add Button -->
+        <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2" id="btn-add">
+          <i class="fa-solid fa-plus"></i>
+          <span class="hidden sm:inline">Adicionar</span>
+        </button>
+        
+        <!-- Logout Button -->
+        <button id="logout-btn" class="action-btn delete hidden lg:flex" title="Sair">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
+        </button>
+      </div>
     </header>
 
-    <main class="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full" id="content-area">
+    <!-- Connection Status -->
+    <div id="connection-status" class="fixed top-16 right-4 z-40 hidden">
+      <div class="bg-red-500 text-white px-3 py-1.5 rounded-full text-xs shadow-lg flex items-center gap-2">
+        <i class="fa-solid fa-wifi"></i>
+        <span>Offline</span>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full" id="content-area">
+      
       <!-- DASHBOARD -->
-      <section class="page-section space-y-8" id="page-dashboard">
+      <section class="page-section space-y-6" id="page-dashboard">
+        <!-- Stats Cards -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-            <span class="text-sm text-gray-500">Eventos</span>
-            <span class="text-2xl font-bold text-gray-800" id="stat-eventos">0</span>
+          <div class="stat-card bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center">
+                <i class="fa-regular fa-calendar text-blue-600"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Eventos</p>
+                <p class="text-xl font-bold text-gray-800" id="stat-eventos">0</p>
+              </div>
+            </div>
           </div>
-          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-            <span class="text-sm text-gray-500">Tarefas</span>
-            <span class="text-2xl font-bold text-gray-800" id="stat-tarefas">0</span>
+          
+          <div class="stat-card bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center">
+                <i class="fa-regular fa-square-check text-yellow-600"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Tarefas</p>
+                <p class="text-xl font-bold text-gray-800" id="stat-tarefas">0</p>
+              </div>
+            </div>
           </div>
-          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-            <span class="text-sm text-gray-500">Notas</span>
-            <span class="text-2xl font-bold text-gray-800" id="stat-notas">0</span>
+          
+          <div class="stat-card bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                <i class="fa-regular fa-note-sticky text-green-600"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Notas</p>
+                <p class="text-xl font-bold text-gray-800" id="stat-notas">0</p>
+              </div>
+            </div>
           </div>
-          <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col">
-            <span class="text-sm text-gray-500">Matérias</span>
-            <span class="text-2xl font-bold text-gray-800" id="stat-materias">0</span>
+          
+          <div class="stat-card bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center">
+                <i class="fa-solid fa-book-open text-purple-600"></i>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500">Matérias</p>
+                <p class="text-xl font-bold text-gray-800" id="stat-materias">0</p>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+        <!-- Dashboard Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Próximos Eventos -->
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="font-bold text-gray-800">Próximos Eventos</h3>
-              <a class="text-primary text-sm font-medium hover:underline cursor-pointer" onclick="navigateTo('agenda')">Ver todos</a>
+              <h3 class="font-semibold text-gray-800">Próximos Eventos</h3>
+              <button class="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1" onclick="navigateTo('agenda')">
+                Ver todos <i class="fa-solid fa-arrow-right text-xs"></i>
+              </button>
             </div>
-            <ul class="space-y-4" id="dash-eventos">
-              <li class="text-center text-gray-400 py-4">Nenhum evento</li>
+            <ul class="space-y-3" id="dash-eventos">
+              <li class="text-center text-gray-400 py-8 text-sm">Nenhum evento</li>
             </ul>
           </div>
 
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <!-- Tarefas Pendentes -->
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="font-bold text-gray-800">Tarefas Pendentes</h3>
-              <span class="bg-indigo-100 text-primary text-xs px-2 py-1 rounded-full" id="dash-tarefas-count">0</span>
+              <h3 class="font-semibold text-gray-800">Tarefas Pendentes</h3>
+              <span class="bg-blue-50 text-blue-600 text-xs px-2 py-1 rounded-full font-medium" id="dash-tarefas-count">0</span>
             </div>
             <div class="space-y-3" id="dash-tarefas">
-              <div class="text-center text-gray-400 py-4">Nenhuma tarefa</div>
+              <div class="text-center text-gray-400 py-8 text-sm">Nenhuma tarefa</div>
             </div>
           </div>
 
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 class="font-bold text-gray-800 mb-4">Aulas de Hoje</h3>
-            <div class="space-y-4" id="dash-aulas">
-              <div class="text-center text-gray-400 py-4">Nenhuma aula hoje</div>
+          <!-- Aulas de Hoje -->
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+            <h3 class="font-semibold text-gray-800 mb-4">Aulas de Hoje</h3>
+            <div class="space-y-3" id="dash-aulas">
+              <div class="text-center text-gray-400 py-8 text-sm">Nenhuma aula hoje</div>
             </div>
           </div>
 
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-            <h3 class="font-bold text-gray-800 mb-4">Notas Recentes</h3>
+          <!-- Notas Recentes -->
+          <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+            <h3 class="font-semibold text-gray-800 mb-4">Notas Recentes</h3>
             <div class="grid grid-cols-2 gap-3" id="dash-notas">
-              <div class="col-span-2 text-center text-gray-400 py-4">Nenhuma nota</div>
+              <div class="col-span-2 text-center text-gray-400 py-8 text-sm">Nenhuma nota</div>
             </div>
           </div>
         </div>
@@ -195,17 +570,17 @@
 
       <!-- AGENDA -->
       <section class="page-section hidden space-y-6" id="page-agenda">
-        <div class="flex flex-wrap gap-4 items-center justify-between">
-          <div class="flex gap-2">
-            <select class="rounded-xl border-gray-200 text-sm focus:ring-primary px-4 py-2" id="filtroTipoEvento">
-              <option value="">Todos Tipos</option>
-              <option value="prova">Provas</option>
-              <option value="trabalho">Trabalhos</option>
-              <option value="aula">Aulas</option>
-              <option value="outro">Outros</option>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+          <div class="flex flex-wrap gap-3">
+            <select class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white" id="filtroTipoEvento">
+              <option value="">Todos os tipos</option>
+              <option value="prova">Prova</option>
+              <option value="trabalho">Trabalho</option>
+              <option value="aula">Aula</option>
+              <option value="outro">Outro</option>
             </select>
-            <select class="rounded-xl border-gray-200 text-sm focus:ring-primary px-4 py-2" id="filtroMateriaEvento">
-              <option value="">Todas Matérias</option>
+            <select class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white" id="filtroMateriaEvento">
+              <option value="">Todas matérias</option>
             </select>
           </div>
         </div>
@@ -214,24 +589,24 @@
 
       <!-- HORÁRIOS -->
       <section class="page-section hidden space-y-6" id="page-horarios">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" id="grade-horarios"></div>
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" id="grade-horarios"></div>
       </section>
 
       <!-- TAREFAS -->
       <section class="page-section hidden space-y-6" id="page-tarefas">
-        <div class="flex flex-wrap gap-4 items-center justify-between">
-          <div class="flex gap-2">
-            <select class="rounded-xl border-gray-200 text-sm focus:ring-primary px-4 py-2" id="filtroPrioridade">
-              <option value="">Todas Prioridades</option>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+          <div class="flex flex-wrap gap-3">
+            <select class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white" id="filtroPrioridade">
+              <option value="">Todas prioridades</option>
               <option value="alta">Alta</option>
               <option value="media">Média</option>
               <option value="baixa">Baixa</option>
             </select>
-            <select class="rounded-xl border-gray-200 text-sm focus:ring-primary px-4 py-2" id="filtroMateriaTarefa">
-              <option value="">Todas Matérias</option>
+            <select class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white" id="filtroMateriaTarefa">
+              <option value="">Todas matérias</option>
             </select>
-            <select class="rounded-xl border-gray-200 text-sm focus:ring-primary px-4 py-2" id="filtroStatusTarefa">
-              <option value="">Todos Status</option>
+            <select class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white" id="filtroStatusTarefa">
+              <option value="">Todos status</option>
               <option value="pendente">Pendentes</option>
               <option value="concluida">Concluídas</option>
             </select>
@@ -242,53 +617,72 @@
 
       <!-- NOTAS -->
       <section class="page-section hidden space-y-6" id="page-notas">
-        <div class="flex gap-4">
-          <input class="flex-1 rounded-xl border-gray-200 focus:ring-primary text-sm px-4 py-2" placeholder="Buscar em notas..." type="text" id="busca-notas"/>
-          <button class="p-2 border border-gray-200 rounded-xl bg-white" id="btn-busca-notas">🔍</button>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+          <div class="flex gap-3">
+            <input class="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500" placeholder="Buscar notas..." type="text" id="busca-notas"/>
+            <button class="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 transition-colors" id="btn-busca-notas">
+              <i class="fa-solid fa-search"></i>
+            </button>
+          </div>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" id="lista-notas"></div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="lista-notas"></div>
       </section>
 
       <!-- MATÉRIAS -->
       <section class="page-section hidden space-y-6" id="page-materias">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="lista-materias"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="lista-materias"></div>
       </section>
     </main>
 
     <!-- MOBILE NAV -->
-    <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center z-40">
-      <button class="flex flex-col items-center gap-1 text-primary" data-mobile-nav="dashboard"><span class="text-xl">🏠</span><span class="text-[10px] font-bold">Início</span></button>
-      <button class="flex flex-col items-center gap-1 text-gray-400" data-mobile-nav="agenda"><span class="text-xl">📅</span><span class="text-[10px]">Agenda</span></button>
-      <button class="flex flex-col items-center gap-1 text-gray-400" data-mobile-nav="horarios"><span class="text-xl">🕐</span><span class="text-[10px]">Horários</span></button>
-      <button class="flex flex-col items-center gap-1 text-gray-400" data-mobile-nav="tarefas"><span class="text-xl">✅</span><span class="text-[10px]">Tarefas</span></button>
-      <button class="flex flex-col items-center gap-1 text-gray-400" data-mobile-nav="notas"><span class="text-xl">📝</span><span class="text-[10px]">Notas</span></button>
-      <button class="flex flex-col items-center gap-1 text-gray-400" data-mobile-nav="materias"><span class="text-xl">📚</span><span class="text-[10px]">Matérias</span></button>
+    <nav class="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 flex justify-around items-center z-40">
+      <button class="mobile-nav-item flex flex-col items-center gap-1 text-blue-600" data-mobile-nav="dashboard">
+        <i class="fa-solid fa-home text-xl"></i>
+        <span class="text-[10px] font-medium">Início</span>
+      </button>
+      <button class="mobile-nav-item flex flex-col items-center gap-1 text-gray-400" data-mobile-nav="agenda">
+        <i class="fa-regular fa-calendar text-xl"></i>
+        <span class="text-[10px]">Agenda</span>
+      </button>
+      <button class="mobile-nav-item flex flex-col items-center gap-1 text-gray-400" data-mobile-nav="horarios">
+        <i class="fa-regular fa-clock text-xl"></i>
+        <span class="text-[10px]">Horários</span>
+      </button>
+      <button class="mobile-nav-item flex flex-col items-center gap-1 text-gray-400" data-mobile-nav="tarefas">
+        <i class="fa-regular fa-square-check text-xl"></i>
+        <span class="text-[10px]">Tarefas</span>
+      </button>
+      <button class="mobile-nav-item flex flex-col items-center gap-1 text-gray-400" data-mobile-nav="notas">
+        <i class="fa-regular fa-note-sticky text-xl"></i>
+        <span class="text-[10px]">Notas</span>
+      </button>
+      <button class="mobile-nav-item flex flex-col items-center gap-1 text-gray-400" data-mobile-nav="materias">
+        <i class="fa-solid fa-book-open text-xl"></i>
+        <span class="text-[10px]">Matérias</span>
+      </button>
     </nav>
   </div>
 
-  <!-- FLOATING BUTTONS -->
-  <div class="lg:hidden fixed bottom-20 right-4 z-[9998]">
-    <button class="bg-primary text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-indigo-700 transition-colors" id="mobile-data-btn" title="Gerenciar dados">💾</button>
-  </div>
-
-  <div class="lg:hidden fixed bottom-32 right-4 z-[9998]">
-    <button id="notificacao-btn" class="bg-indigo-500 text-white w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-2xl hover:bg-indigo-600 transition-colors" title="Ativar notificações">🔔</button>
-  </div>
-
-  <div id="connection-status" class="fixed bottom-24 left-4 z-[9998] hidden">
-    <div class="bg-red-500 text-white px-4 py-2 rounded-full text-sm font-semibold shadow-lg flex items-center gap-2">
-      <span class="w-2 h-2 bg-white rounded-full animate-pulse"></span> 📴 Offline
-    </div>
+  <!-- FLOATING BUTTONS MOBILE -->
+  <div class="lg:hidden fixed bottom-20 right-4 z-40 flex flex-col gap-3">
+    <button class="w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors" id="mobile-data-btn" title="Gerenciar dados">
+      <i class="fa-solid fa-database"></i>
+    </button>
+    <button id="notificacao-btn" class="w-12 h-12 bg-indigo-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-600 transition-colors" title="Notificações">
+      <i class="fa-regular fa-bell"></i>
+    </button>
   </div>
 
   <!-- MODALS -->
   <div class="fixed inset-0 z-[10000] hidden items-center justify-center p-4" id="modal-container">
-    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-backdrop"></div>
-    <div class="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transform transition-all" id="modal-create-item">
+    <div class="absolute inset-0 bg-black/20" id="modal-backdrop"></div>
+    <div class="relative bg-white w-full max-w-md rounded-xl shadow-xl overflow-hidden">
       <div class="p-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-bold text-gray-800" id="modal-create-title">Novo Item</h3>
-          <button class="text-gray-400 hover:text-gray-600 text-2xl" id="modal-close">✕</button>
+          <h3 class="text-lg font-semibold text-gray-800" id="modal-create-title">Novo Item</h3>
+          <button class="text-gray-400 hover:text-gray-600" id="modal-close">
+            <i class="fa-solid fa-times"></i>
+          </button>
         </div>
         <form class="space-y-4" id="modal-form"></form>
       </div>
@@ -296,32 +690,38 @@
   </div>
 
   <div class="fixed inset-0 z-[10000] hidden items-center justify-center p-4" id="modal-import-export">
-    <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" id="modal-ie-backdrop"></div>
-    <div class="relative bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
+    <div class="absolute inset-0 bg-black/20" id="modal-ie-backdrop"></div>
+    <div class="relative bg-white w-full max-w-sm rounded-xl shadow-xl overflow-hidden">
       <div class="p-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-bold text-gray-800">Gerenciar Dados</h3>
-          <button class="text-gray-400 hover:text-gray-600 text-2xl" id="modal-ie-close">✕</button>
+          <h3 class="text-lg font-semibold text-gray-800">Gerenciar Dados</h3>
+          <button class="text-gray-400 hover:text-gray-600" id="modal-ie-close">
+            <i class="fa-solid fa-times"></i>
+          </button>
         </div>
-        <p class="text-sm text-gray-500 mb-6">Exporte seus dados para backup ou importe um arquivo JSON anterior.</p>
+        <p class="text-sm text-gray-500 mb-6">Exporte ou importe seus dados em formato JSON.</p>
         <div class="space-y-3">
-          <button class="w-full flex items-center justify-center gap-2 bg-primary text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg" id="mobile-export-btn"><span>💾</span> Exportar JSON</button>
-          <button class="w-full flex items-center justify-center gap-2 bg-gray-50 text-gray-700 py-3 rounded-xl font-semibold border border-gray-200 hover:bg-gray-100 transition-colors" id="mobile-import-btn"><span>📂</span> Importar JSON</button>
+          <button class="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-2.5 rounded-lg font-medium hover:bg-blue-700 transition-colors" id="mobile-export-btn">
+            <i class="fa-solid fa-download"></i> Exportar JSON
+          </button>
+          <button class="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-700 py-2.5 rounded-lg font-medium hover:bg-gray-200 transition-colors" id="mobile-import-btn">
+            <i class="fa-solid fa-upload"></i> Importar JSON
+          </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- SCRIPTS -->
+  <!-- Scripts -->
   <script src="/js/config.js"></script>
   <script src="/js/services/auth.js"></script>
   <script src="/js/services/data.js"></script>
   <script src="/js/app.js"></script>
   
   <script>
-    // Loader control
-    window.addEventListener('load', function() {
-      setTimeout(function() {
+    // Loader
+    window.addEventListener('load', () => {
+      setTimeout(() => {
         const loader = document.getElementById('loader');
         if (loader) {
           loader.classList.add('fade-out');
@@ -330,14 +730,12 @@
       }, 1500);
     });
 
+    // Service Worker
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('Service Worker registrado'))
-          .catch(err => console.log('Service Worker falhou:', err));
-      });
+      navigator.serviceWorker.register('/sw.js').catch(console.log);
     }
 
+    // PWA Install
     let deferredPrompt;
     const installContainer = document.getElementById('install-pwa-container');
     const installBtn = document.getElementById('install-pwa-btn');
@@ -357,26 +755,20 @@
       }
     });
 
-    if (installBtn) {
-      installBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
-          deferredPrompt.prompt();
-          const { outcome } = await deferredPrompt.userChoice;
-          if (outcome === 'accepted') {
-            deferredPrompt = null;
-            installContainer.classList.add('hidden');
-          }
-        } else {
-          alert('Para instalar, use o menu do navegador: "Adicionar à tela inicial"');
+    installBtn?.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          deferredPrompt = null;
+          installContainer.classList.add('hidden');
         }
-      });
-    }
+      }
+    });
 
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        installContainer.classList.add('hidden');
-      });
-    }
+    closeBtn?.addEventListener('click', () => {
+      installContainer.classList.add('hidden');
+    });
 
     window.addEventListener('appinstalled', () => {
       deferredPrompt = null;
@@ -387,13 +779,13 @@
       installContainer.classList.add('hidden');
     }
 
+    // Connection Status
     function updateConnectionStatus() {
       const statusDiv = document.getElementById('connection-status');
       if (statusDiv) {
         statusDiv.classList.toggle('hidden', navigator.onLine);
       }
     }
-
     window.addEventListener('online', updateConnectionStatus);
     window.addEventListener('offline', updateConnectionStatus);
     updateConnectionStatus();

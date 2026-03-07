@@ -1,4 +1,15 @@
-.vercel
+# Environment
+.env
 .env*.local
+.env.*.local
+
+# Vercel
+.vercel
+
+# Build
 dist/
-node_modules
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db

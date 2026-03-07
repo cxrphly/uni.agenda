@@ -1,204 +1,383 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-  <title>UniAgenda - Login</title>
+  <title>UniAgenda</title>
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
-  
   <style>
     body {
-      font-family: 'Inter', sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
+      background: #f3f4f6;
+      font-family: system-ui, -apple-system, sans-serif;
     }
-    .login-card {
-      animation: slideUp 0.5s ease;
+    
+    .toast {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      background: #10b981;
+      color: white;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      font-size: 0.875rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      z-index: 50;
+      animation: slideIn 0.2s ease;
     }
-    @keyframes slideUp {
-      from {
-        opacity: 0;
-        transform: translateY(50px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+    
+    .toast.error {
+      background: #ef4444;
     }
+    
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(1rem); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    
     .loader {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #4f46e5;
+      border: 2px solid #e5e7eb;
+      border-top-color: #3b82f6;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      animation: spin 1s linear infinite;
+      width: 2rem;
+      height: 2rem;
+      animation: spin 0.6s linear infinite;
     }
+    
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    input {
+      outline: none;
+      transition: all 0.2s;
+    }
+    
+    input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    input.error {
+      border-color: #ef4444;
+      background-color: #fef2f2;
+    }
+    
+    input.valid {
+      border-color: #10b981;
+      background-color: #f0fdf4;
+    }
+    
+    .error-message-field {
+      font-size: 0.75rem;
+      color: #ef4444;
+      margin-top: 0.25rem;
+      display: none;
+    }
+    
+    .error-message-field.show {
+      display: block;
     }
   </style>
 </head>
-<body class="flex items-center justify-center p-4">
+<body class="min-h-screen flex items-center justify-center p-4">
+  
   <!-- Loader -->
-  <div id="global-loader" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden items-center justify-center">
-    <div class="bg-white p-8 rounded-2xl shadow-2xl text-center">
-      <div class="loader mx-auto mb-4"></div>
-      <p class="text-gray-700 font-medium" id="loader-message">Processando...</p>
+  <div id="global-loader" class="fixed inset-0 bg-black/20 hidden items-center justify-center z-50">
+    <div class="bg-white p-4 rounded-lg shadow-lg">
+      <div class="loader"></div>
     </div>
   </div>
 
   <!-- Toast container -->
-  <div id="toast-container" class="fixed top-4 right-4 z-50"></div>
+  <div id="toast-container"></div>
 
-  <!-- Card de Login -->
-  <div class="login-card bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-    <!-- Header -->
-    <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 p-8 text-white text-center">
-      <div class="w-20 h-20 bg-white/20 backdrop-blur-lg rounded-2xl flex items-center justify-center text-5xl mx-auto mb-4 shadow-xl">
-        🎓
+  <!-- Card -->
+  <div class="w-full max-w-md bg-white rounded-xl shadow-lg p-8">
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="w-14 h-14 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-md">
+        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+        </svg>
       </div>
-      <h1 class="text-3xl font-bold">UniAgenda</h1>
-      <p class="text-indigo-100 mt-2">Seu planejador universitário</p>
+      <h1 class="text-2xl font-bold text-gray-900">UniAgenda</h1>
+      <p class="text-sm text-gray-500 mt-2">Organize seus estudos com eficiência</p>
     </div>
 
     <!-- Tabs -->
-    <div class="border-b border-gray-200">
-      <div class="flex">
-        <button id="tab-login" class="flex-1 py-4 text-sm font-medium text-indigo-600 border-b-2 border-indigo-600">Login</button>
-        <button id="tab-register" class="flex-1 py-4 text-sm font-medium text-gray-500 hover:text-gray-700">Cadastro</button>
-      </div>
+    <div class="flex bg-gray-100 rounded-lg p-1 mb-8">
+      <button id="tab-login" class="flex-1 py-2.5 text-sm font-medium rounded-md bg-white shadow-sm text-blue-600 transition-all">Entrar</button>
+      <button id="tab-register" class="flex-1 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Cadastrar</button>
     </div>
 
-    <!-- Formulário de Login -->
-    <form id="login-form" class="p-8 space-y-6">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-        <input type="email" id="login-email" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="seu@email.com" required>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Senha</label>
-        <input type="password" id="login-password" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="••••••••" required>
-      </div>
-      <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg">
-        Entrar
-      </button>
-    </form>
+    <!-- Login Form -->
+    <div id="login-form-container">
+      <form id="login-form" class="space-y-5" novalidate>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">E-mail</label>
+          <input type="email" 
+                 id="login-email" 
+                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500"
+                 placeholder="seu@email.com"
+                 required>
+          <div id="login-email-error" class="error-message-field"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Senha</label>
+          <input type="password" 
+                 id="login-password" 
+                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500"
+                 placeholder="••••••••"
+                 minlength="6"
+                 required>
+          <div id="login-password-error" class="error-message-field"></div>
+        </div>
+        <div class="flex items-center justify-between">
+          <label class="flex items-center">
+            <input type="checkbox" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mr-2">
+            <span class="text-sm text-gray-600">Lembrar</span>
+          </label>
+          <a href="#" class="text-sm text-blue-600 hover:text-blue-700">Esqueceu a senha?</a>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-md">
+          Entrar
+        </button>
+      </form>
+    </div>
 
-    <!-- Formulário de Cadastro -->
-    <form id="register-form" class="p-8 space-y-6 hidden">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Nome completo</label>
-        <input type="text" id="register-name" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500" placeholder="Seu nome" required>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-        <input type="email" id="register-email" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500" placeholder="seu@email.com" required>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Senha</label>
-        <input type="password" id="register-password" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500" placeholder="••••••••" required>
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">Confirmar senha</label>
-        <input type="password" id="register-confirm" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500" placeholder="••••••••" required>
-      </div>
-      <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg">
-        Criar conta
-      </button>
-    </form>
+    <!-- Register Form -->
+    <div id="register-form-container" class="hidden">
+      <form id="register-form" class="space-y-4" novalidate>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Nome completo</label>
+          <input type="text" 
+                 id="register-name" 
+                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500"
+                 placeholder="Seu nome"
+                 minlength="3"
+                 required>
+          <div id="register-name-error" class="error-message-field"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">E-mail</label>
+          <input type="email" 
+                 id="register-email" 
+                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500"
+                 placeholder="seu@email.com"
+                 required>
+          <div id="register-email-error" class="error-message-field"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Senha</label>
+          <input type="password" 
+                 id="register-password" 
+                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500"
+                 placeholder="••••••••"
+                 minlength="6"
+                 required>
+          <div id="register-password-error" class="error-message-field"></div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Confirmar senha</label>
+          <input type="password" 
+                 id="register-confirm" 
+                 class="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:border-blue-500"
+                 placeholder="••••••••"
+                 minlength="6"
+                 required>
+          <div id="register-confirm-error" class="error-message-field"></div>
+        </div>
+        <button type="submit" class="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors shadow-md">
+          Criar conta
+        </button>
+      </form>
+    </div>
 
     <!-- Divisor -->
-    <div class="px-8 pb-8">
-      <div class="relative">
-        <div class="absolute inset-0 flex items-center">
-          <div class="w-full border-t border-gray-200"></div>
-        </div>
-        <div class="relative flex justify-center text-sm">
-          <span class="px-4 bg-white text-gray-400">ou continue com</span>
-        </div>
+    <div class="relative my-6">
+      <div class="absolute inset-0 flex items-center">
+        <div class="w-full border-t border-gray-200"></div>
       </div>
-
-      <!-- Botões sociais -->
-      <div class="mt-6 grid grid-cols-3 gap-3">
-        <button id="login-vercel" class="flex justify-center items-center px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50">
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M24 22h-24l12-20z"/>
-          </svg>
-        </button>
-        
-        <button id="login-google" class="flex justify-center items-center px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50">
-          <svg class="w-5 h-5" viewBox="0 0 24 24">
-            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-        </button>
-        
-        <button id="login-github" class="flex justify-center items-center px-4 py-3 border border-gray-300 rounded-xl hover:bg-gray-50">
-          <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
-          </svg>
-        </button>
+      <div class="relative flex justify-center text-sm">
+        <span class="px-4 bg-white text-gray-400">ou continue com</span>
       </div>
     </div>
 
-    <!-- Mensagem de erro -->
-    <div id="error-message" class="px-8 pb-8 text-center text-red-500 text-sm hidden"></div>
-  </div>  <!-- Config -->
+    <!-- Social Login -->
+    <div class="grid grid-cols-3 gap-3">
+      <button id="login-google" class="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+        <svg class="w-5 h-5" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+      </button>
+      <button id="login-github" class="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+        </svg>
+      </button>
+      <button id="login-apple" class="flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.69 3.56-1.702z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Error message -->
+    <div id="error-message" class="mt-4 text-sm text-red-600 text-center hidden"></div>
+  </div>
+
   <script>
-    window.ENV = {
-      CLERK_PUBLISHABLE_KEY: 'pk_test_dmFsdWVkLWxhY2V3aW5nLTIwLmNsZXJrLmFjY291bnRzLmRldiQ',
-      SUPABASE_URL: 'https://dkjymeggfmeueixupzmo.supabase.co',
-      SUPABASE_ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRranltZWdnZm1ldWVpeHVwem1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4OTc4NjUsImV4cCI6MjA4ODQ3Mzg2NX0.nHdGsI_E-4HT8ZispVTwfx0ZDjYFp4-GgmeIAbVIdMA'
-    };
-  </script>
-  
-  <!-- Scripts - ORDEM CORRETA -->
-  <script src="/js/config.js"></script>
-  <script src="/js/services/auth.js"></script>
-  <script src="/js/login.js"></script>
-  
-  <script>
-    // Debug para verificar se os scripts carregaram
-    document.addEventListener('DOMContentLoaded', function() {
-      console.log('📱 Página de login DOM carregado');
-      console.log('   - window.auth:', !!window.auth);
-      console.log('   - window.appConfig:', !!window.appConfig);
-      
-      // Verificar se os listeners das tabs estão funcionando
-      const tabLogin = document.getElementById('tab-login');
-      const tabRegister = document.getElementById('tab-register');
-      
-      if (tabLogin && tabRegister) {
-        console.log('✅ Tabs encontradas');
-        
-        // Adicionar listeners diretamente para teste
-        tabLogin.addEventListener('click', function() {
-          console.log('👆 Tab Login clicada');
-          tabLogin.classList.add('text-indigo-600', 'border-indigo-600');
-          tabRegister.classList.remove('text-indigo-600', 'border-indigo-600');
-          document.getElementById('login-form')?.classList.remove('hidden');
-          document.getElementById('register-form')?.classList.add('hidden');
+    // Validação em tempo real
+    function validateEmail(email) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    function validatePassword(password) {
+      return password.length >= 6;
+    }
+
+    function validateName(name) {
+      return name.length >= 3;
+    }
+
+    // Adicionar validação aos campos
+    document.querySelectorAll('input').forEach(input => {
+      input.addEventListener('input', function() {
+        const errorDiv = document.getElementById(this.id + '-error');
+        if (!errorDiv) return;
+
+        let isValid = true;
+        let errorMessage = '';
+
+        if (this.type === 'email') {
+          isValid = validateEmail(this.value);
+          errorMessage = 'E-mail inválido';
+        } else if (this.type === 'password') {
+          if (this.id.includes('confirm')) {
+            const password = document.getElementById(this.id.replace('confirm', 'password'))?.value;
+            isValid = this.value === password && this.value.length >= 6;
+            errorMessage = 'As senhas não conferem';
+          } else {
+            isValid = validatePassword(this.value);
+            errorMessage = 'A senha deve ter no mínimo 6 caracteres';
+          }
+        } else if (this.id.includes('name')) {
+          isValid = validateName(this.value);
+          errorMessage = 'Nome deve ter no mínimo 3 caracteres';
+        }
+
+        if (this.value === '') {
+          isValid = true;
+          errorMessage = '';
+        }
+
+        if (isValid) {
+          this.classList.remove('error');
+          this.classList.add('valid');
+          errorDiv.classList.remove('show');
+          errorDiv.textContent = '';
+        } else {
+          this.classList.remove('valid');
+          this.classList.add('error');
+          errorDiv.textContent = errorMessage;
+          errorDiv.classList.add('show');
+        }
+      });
+    });
+
+    // Validação de confirmação de senha específica
+    const confirmField = document.getElementById('register-confirm');
+    const passwordField = document.getElementById('register-password');
+
+    if (confirmField && passwordField) {
+      passwordField.addEventListener('input', () => {
+        if (confirmField.value) {
+          const event = new Event('input');
+          confirmField.dispatchEvent(event);
+        }
+      });
+    }
+
+    // Toggle tabs
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+    const loginContainer = document.getElementById('login-form-container');
+    const registerContainer = document.getElementById('register-form-container');
+    const errorMessage = document.getElementById('error-message');
+
+    tabLogin.addEventListener('click', () => {
+      tabLogin.classList.add('bg-white', 'shadow-sm', 'text-blue-600');
+      tabRegister.classList.remove('bg-white', 'shadow-sm', 'text-blue-600');
+      tabRegister.classList.add('text-gray-600');
+      loginContainer.classList.remove('hidden');
+      registerContainer.classList.add('hidden');
+      errorMessage.classList.add('hidden');
+    });
+
+    tabRegister.addEventListener('click', () => {
+      tabRegister.classList.add('bg-white', 'shadow-sm', 'text-blue-600');
+      tabLogin.classList.remove('bg-white', 'shadow-sm', 'text-blue-600');
+      tabLogin.classList.add('text-gray-600');
+      registerContainer.classList.remove('hidden');
+      loginContainer.classList.add('hidden');
+      errorMessage.classList.add('hidden');
+    });
+
+    // Prevenir submit se houver erros
+    document.querySelectorAll('form').forEach(form => {
+      form.addEventListener('submit', (e) => {
+        const inputs = form.querySelectorAll('input[required]');
+        let hasError = false;
+
+        inputs.forEach(input => {
+          if (input.classList.contains('error') || !input.value) {
+            hasError = true;
+          }
         });
-        
-        tabRegister.addEventListener('click', function() {
-          console.log('👆 Tab Register clicada');
-          tabRegister.classList.add('text-indigo-600', 'border-indigo-600');
-          tabLogin.classList.remove('text-indigo-600', 'border-indigo-600');
-          document.getElementById('register-form')?.classList.remove('hidden');
-          document.getElementById('login-form')?.classList.add('hidden');
-        });
+
+        if (hasError) {
+          e.preventDefault();
+          const errorDiv = document.getElementById('error-message');
+          errorDiv.textContent = 'Por favor, corrija os erros antes de continuar';
+          errorDiv.classList.remove('hidden');
+        }
+      });
+    });
+
+    // Social login buttons (integrados com auth.js)
+    document.getElementById('login-google')?.addEventListener('click', () => {
+      if (window.auth?.loginWithGoogle) {
+        window.auth.loginWithGoogle();
       } else {
-        console.error('❌ Tabs não encontradas!');
+        console.log('Google login - implementar com auth.js');
+      }
+    });
+
+    document.getElementById('login-github')?.addEventListener('click', () => {
+      if (window.auth?.loginWithGithub) {
+        window.auth.loginWithGithub();
+      } else {
+        console.log('GitHub login - implementar com auth.js');
+      }
+    });
+
+    document.getElementById('login-apple')?.addEventListener('click', () => {
+      if (window.auth?.loginWithApple) {
+        window.auth.loginWithApple();
+      } else {
+        console.log('Apple login - implementar com auth.js');
       }
     });
   </script>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/services/auth.js"></script>
+  <script src="/js/login.js"></script>
 </body>
 </html>
