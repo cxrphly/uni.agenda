@@ -1,9 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔨 Iniciando build...');
+console.log('🔨 Iniciando build do UniAgenda...');
 
-// Função para ler arquivo
 function readFile(filePath) {
   try {
     return fs.readFileSync(filePath, 'utf8');
@@ -13,7 +12,21 @@ function readFile(filePath) {
   }
 }
 
-// Função para substituir placeholders
+function injectEnvVars(content) {
+  const supabaseUrl = 'https://dkjymeggfmeueixupzmo.supabase.co';
+  const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRranltZWdnZm1ldWVpeHVwem1vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4OTc4NjUsImV4cCI6MjA4ODQ3Mzg2NX0.nHdGsI_E-4HT8ZispVTwfx0ZDjYFp4-GgmeIAbVIdMA';
+
+  const envScript = `
+<script>
+  window.ENV = {
+    SUPABASE_URL: '${supabaseUrl}',
+    SUPABASE_ANON_KEY: '${supabaseKey}'
+  };
+</script>
+`;
+  return content.replace('</head>', envScript + '\n</head>');
+}
+
 function replacePlaceholders(content, components) {
   return content.replace(/\{\{([\w-]+)\}\}/g, (match, componentName) => {
     if (components[componentName]) {
@@ -25,25 +38,18 @@ function replacePlaceholders(content, components) {
   });
 }
 
-// Criar pasta dist se não existir
-if (!fs.existsSync(path.join(__dirname, 'dist'))) {
-  fs.mkdirSync(path.join(__dirname, 'dist'));
-}
+// Criar pastas
+const dirs = ['dist', 'dist/css', 'dist/js', 'dist/js/services'];
+dirs.forEach(dir => {
+  if (!fs.existsSync(path.join(__dirname, dir))) {
+    fs.mkdirSync(path.join(__dirname, dir), { recursive: true });
+    console.log(`   Criada: ${dir}`);
+  }
+});
 
-// Criar subpastas
-if (!fs.existsSync(path.join(__dirname, 'dist/css'))) {
-  fs.mkdirSync(path.join(__dirname, 'dist/css'), { recursive: true });
-}
-if (!fs.existsSync(path.join(__dirname, 'dist/js'))) {
-  fs.mkdirSync(path.join(__dirname, 'dist/js'), { recursive: true });
-}
-
-// Carregar todos os componentes
-console.log('📁 Carregando componentes...');
-
-// Mapeamento explícito de todos os placeholders
+// Carregar componentes
+console.log('📁 Carregando componentes HTML...');
 const components = {
-  // Componentes principais
   'head': readFile(path.join(__dirname, 'src/components/head.html')),
   'install-pwa': readFile(path.join(__dirname, 'src/components/install-pwa.html')),
   'loader': readFile(path.join(__dirname, 'src/components/loader.html')),
@@ -51,12 +57,10 @@ const components = {
   'header': readFile(path.join(__dirname, 'src/components/header.html')),
   'mobile-nav': readFile(path.join(__dirname, 'src/components/mobile-nav.html')),
   'floating-buttons': readFile(path.join(__dirname, 'src/components/floating-buttons.html')),
-  
-  // Modais
   'universal-modal': readFile(path.join(__dirname, 'src/components/modals/universal-modal.html')),
   'import-export-modal': readFile(path.join(__dirname, 'src/components/modals/import-export-modal.html')),
-  
-  // Seções
+  'login-modal': readFile(path.join(__dirname, 'src/components/auth/login-modal.html')),
+  'sync-indicator': readFile(path.join(__dirname, 'src/components/sync-indicator.html')),
   'dashboard': readFile(path.join(__dirname, 'src/sections/dashboard.html')),
   'agenda': readFile(path.join(__dirname, 'src/sections/agenda.html')),
   'horarios': readFile(path.join(__dirname, 'src/sections/horarios.html')),
@@ -65,49 +69,54 @@ const components = {
   'materias': readFile(path.join(__dirname, 'src/sections/materias.html'))
 };
 
-// Verificar se todos os componentes foram carregados
-console.log('📋 Status dos componentes:');
-Object.keys(components).forEach(key => {
-  const status = components[key] ? components[key].length + ' caracteres' : '❌ VAZIO';
-  console.log(`   - ${key}: ${status}`);
-});
+// Processar index.html
+console.log('\n📄 Processando index.html...');
+const template = readFile(path.join(__dirname, 'src/index.html'));
+let indexHtml = replacePlaceholders(template, components);
+indexHtml = injectEnvVars(indexHtml);
+fs.writeFileSync(path.join(__dirname, 'dist/index.html'), indexHtml);
+console.log('✅ index.html gerado');
 
-// Ler o template principal
-const templatePath = path.join(__dirname, 'src/index.html');
-console.log(`📄 Lendo template: ${templatePath}`);
-const template = readFile(templatePath);
+// Processar login.html
+console.log('\n📄 Processando login.html...');
+const loginSource = path.join(__dirname, 'src/login.html');
+if (fs.existsSync(loginSource)) {
+  let loginHtml = readFile(loginSource);
+  loginHtml = injectEnvVars(loginHtml);
+  fs.writeFileSync(path.join(__dirname, 'dist/login.html'), loginHtml);
+  console.log('✅ login.html gerado');
+}
 
-// Substituir placeholders
-console.log('🔄 Processando placeholders...');
-let finalHtml = replacePlaceholders(template, components);
+// Copiar CSS
+console.log('\n📁 Copiando CSS...');
+fs.copyFileSync(
+  path.join(__dirname, 'src/css/style.css'),
+  path.join(__dirname, 'dist/css/style.css')
+);
+console.log('✅ CSS copiado');
 
-// Salvar o arquivo final
-const outputPath = path.join(__dirname, 'dist/index.html');
-fs.writeFileSync(outputPath, finalHtml);
-console.log(`✅ Build concluído! Arquivo gerado em ${outputPath}`);
+// Copiar JS
+console.log('\n📁 Copiando JavaScript...');
+const jsFiles = [
+  'src/js/config.js',
+  'src/js/app.js',
+  'src/js/login.js',
+  'src/js/services/auth.js',
+  'src/js/services/data.js'
+];
 
-// Copiar CSS para dist
-const cssSource = path.join(__dirname, 'src/css/style.css');
-const cssDest = path.join(__dirname, 'dist/css/style.css');
-fs.copyFileSync(cssSource, cssDest);
-console.log('✅ CSS copiado para dist/css/style.css');
-
-// Copiar JS para dist
-const jsSource = path.join(__dirname, 'src/js/app.js');
-const jsDest = path.join(__dirname, 'dist/js/app.js');
-fs.copyFileSync(jsSource, jsDest);
-console.log('✅ JS copiado para dist/js/app.js');
-
-// Listar arquivos gerados
-console.log('📁 Arquivos em dist/:');
-const distFiles = fs.readdirSync(path.join(__dirname, 'dist'));
-distFiles.forEach(file => {
-  const stats = fs.statSync(path.join(__dirname, 'dist', file));
-  if (stats.isDirectory()) {
-    console.log(`   📁 ${file}/`);
-    const subFiles = fs.readdirSync(path.join(__dirname, 'dist', file));
-    subFiles.forEach(sub => console.log(`      - ${sub}`));
-  } else {
-    console.log(`   - ${file}`);
+jsFiles.forEach(file => {
+  const source = path.join(__dirname, file);
+  const dest = path.join(__dirname, 'dist/js', file.replace('src/js/', ''));
+  
+  if (fs.existsSync(source)) {
+    const destDir = path.dirname(dest);
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+    fs.copyFileSync(source, dest);
+    console.log(`✅ ${file} copiado`);
   }
 });
+
+console.log('\n🎉 Build concluído com sucesso!');

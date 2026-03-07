@@ -23,5 +23,9 @@
   "bugs": {
     "url": "https://github.com/cxrphly/uni.agenda/issues"
   },
-  "homepage": "https://github.com/cxrphly/uni.agenda#readme"
+  "homepage": "https://github.com/cxrphly/uni.agenda#readme",
+  "dependencies": {
+    "@clerk/clerk-js": "^6.0.0",
+    "@supabase/supabase-js": "^2.98.0"
+  }
 }

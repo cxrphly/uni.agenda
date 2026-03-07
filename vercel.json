@@ -5,22 +5,26 @@
       "use": "@vercel/static"
     },
     {
-      "src": "dist/**/*.html",
+      "src": "src/**/*.html",
       "use": "@vercel/static"
     },
     {
-      "src": "dist/**/*.js",
+      "src": "src/**/*.js",
       "use": "@vercel/static"
     },
     {
-      "src": "dist/**/*.css",
+      "src": "src/**/*.css",
       "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/",
-      "dest": "/dist/index.html"
+      "dest": "/src/index.html"
+    },
+    {
+      "src": "/login",
+      "dest": "/src/login.html"
     },
     {
       "src": "/icons/(.*)",
@@ -40,15 +44,11 @@
     },
     {
       "src": "/css/(.*)",
-      "dest": "/dist/css/$1"
+      "dest": "/src/css/$1"
     },
     {
       "src": "/js/(.*)",
-      "dest": "/dist/js/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/dist/index.html"
+      "dest": "/src/js/$1"
     }
   ]
 }
