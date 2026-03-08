@@ -1,4 +1,3 @@
-// login.js
 (function() {
   console.log('📦 login.js carregado');
   
@@ -50,7 +49,6 @@
       });
     }
 
-    // Login com email
     if (loginForm) {
       loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -73,7 +71,6 @@
       });
     }
 
-    // Registro
     if (registerForm) {
       registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();

@@ -2,6 +2,11 @@
 (function() {
   class AuthService {
     constructor() {
+      // Verificar se já existe uma instância global
+      if (window.__supabaseAuthInstance) {
+        return window.__supabaseAuthInstance;
+      }
+      
       this.supabase = null;
       this.user = null;
       this.session = null;
@@ -9,6 +14,10 @@
       this.initialized = false;
       this.initPromise = null;
       this.config = window.appConfig?.supabase;
+      this.clientInitialized = false;
+      
+      // Salvar a instância globalmente
+      window.__supabaseAuthInstance = this;
     }
 
     async init() {
@@ -17,23 +26,43 @@
 
       this.initPromise = new Promise(async (resolve, reject) => {
         try {
-          console.log('🔄 Inicializando Supabase Auth...');
           
           if (!this.config || !this.config.url || !this.config.anonKey) {
             throw new Error('Configuração do Supabase não encontrada');
           }
           
-          const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.0');
-          this.supabase = createClient(this.config.url, this.config.anonKey);
+          // Verificar se já existe um cliente Supabase global
+          if (!window.__supabaseClient) {
+            const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.0');
+            
+            // Configurações para evitar múltiplas instâncias
+            window.__supabaseClient = createClient(this.config.url, this.config.anonKey, {
+              auth: {
+                autoRefreshToken: true,
+                persistSession: true,
+                detectSessionInUrl: true,
+                storageKey: 'uniagenda-auth-storage', // Chave única para o storage
+                storage: localStorage // Usar localStorage explicitamente
+              }
+            });
+          } else {
+            console.log('📢 Reutilizando cliente Supabase existente');
+          }
+          
+          this.supabase = window.__supabaseClient;
           
           // Verificar sessão existente
           const { data: { session } } = await this.supabase.auth.getSession();
           this.session = session;
           this.user = session?.user ?? null;
           
+          // Remover listener anterior se existir
+          if (this.authListener) {
+            this.authListener.unsubscribe();
+          }
+          
           // Listener para mudanças de auth
-          this.supabase.auth.onAuthStateChange((event, session) => {
-            console.log('📢 Auth state changed:', event);
+          this.authListener = this.supabase.auth.onAuthStateChange((event, session) => {
             this.session = session;
             this.user = session?.user ?? null;
             this.notifyListeners();
@@ -43,7 +72,6 @@
           this.initialized = true;
           this.updateUI();
           
-          console.log('✅ AuthService inicializado', this.user ? 'Usuário logado' : 'Usuário não logado');
           resolve();
         } catch (error) {
           console.error('❌ Erro ao inicializar Supabase Auth:', error);
@@ -69,12 +97,15 @@
       if (this.user) {
         if (logoutBtn) logoutBtn.classList.remove('hidden');
         if (mainContent) mainContent.classList.remove('opacity-50', 'pointer-events-none');
-        if (installPwa) installPwa.classList.remove('hidden');
+        // NÃO controlar o banner pelo auth - REMOVIDO
+        // if (installPwa) installPwa.classList.remove('hidden');
       } else {
         if (logoutBtn) logoutBtn.classList.add('hidden');
         if (mainContent) {
           mainContent.classList.add('opacity-50', 'pointer-events-none');
         }
+        // Esconder banner quando deslogado (opcional)
+        if (installPwa) installPwa.classList.add('hidden');
       }
     }
 
@@ -218,6 +249,11 @@
       this.listeners.forEach(cb => cb(this.user));
     }
   }
+
+  // Limpar instância global ao recarregar a página
+  window.addEventListener('beforeunload', () => {
+    window.__supabaseClient = null;
+  });
 
   window.auth = new AuthService();
 })();

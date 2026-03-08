@@ -5,24 +5,25 @@
   <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
   <title>UniAgenda - Seu Planejador Universitário</title>
   
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Google Fonts: Inter -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"/>
   
   <!-- CSS Personalizado -->
   <link rel="stylesheet" href="/css/style.css">
-  
+  <!-- Para iOS - essencial! -->
+<link rel="apple-touch-icon" href="/icons/maskable_icon_x192.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/icons/maskable_icon_x152.png">
+<link rel="apple-touch-icon" sizes="167x167" href="/icons/maskable_icon_x167.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/icons/maskable_icon_x180.png">
   <!-- PWA Meta Tags -->
   <meta name="theme-color" content="#3b82f6">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="UniAgenda">
   <link rel="manifest" href="/site.webmanifest">
-  <link rel="icon" type="image/png" sizes="192x192" href="/icons/maskable_icon_x192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icons/favicon.ico">
   
   <style>
     body {
@@ -30,7 +31,6 @@
       background-color: #f3f4f6;
     }
     
-    /* Loader Animado com GIF */
     .loader-container {
       position: fixed;
       top: 0;
@@ -76,7 +76,6 @@
       font-size: 14px;
     }
     
-    /* Toast Container */
     .toast-container {
       position: fixed;
       top: 20px;
@@ -176,7 +175,6 @@
       animation: toastSlideOut 0.2s ease forwards;
     }
     
-    /* Sidebar */
     .sidebar-transition { transition: transform 0.3s; }
     .active-nav {
       background-color: #3b82f6 !important;
@@ -184,7 +182,6 @@
     }
     .active-nav i { color: white !important; }
     
-    /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: #f1f1f1; }
     ::-webkit-scrollbar-thumb {
@@ -193,7 +190,6 @@
     }
     ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     
-    /* Cards */
     .stat-card {
       transition: all 0.2s;
     }
@@ -202,7 +198,6 @@
       box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
     }
     
-    /* Ícones de ação */
     .action-btn {
       width: 32px;
       height: 32px;
@@ -250,7 +245,6 @@
       transform: scale(1.05);
     }
     
-    /* Cards de itens */
     .item-card {
       background: white;
       border-radius: 12px;
@@ -266,7 +260,6 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.05);
     }
     
-    /* Prioridade badges */
     .priority-badge {
       font-size: 11px;
       font-weight: 600;
@@ -288,7 +281,6 @@
       color: #16a34a;
     }
     
-    /* Priority dot */
     .priority-dot {
       width: 8px;
       height: 8px;
@@ -297,7 +289,6 @@
       margin-right: 4px;
     }
     
-    /* Mobile */
     .mobile-nav-item.active {
       color: #3b82f6;
     }
@@ -305,7 +296,6 @@
       font-weight: 600;
     }
     
-    /* Line clamp */
     .line-clamp-4 {
       display: -webkit-box;
       -webkit-line-clamp: 4;
@@ -313,7 +303,6 @@
       overflow: hidden;
     }
     
-    /* Faltas */
     .faltas-bar {
       width: 100%;
       height: 6px;
@@ -329,13 +318,43 @@
     .faltas-alert { color: #ef4444; font-weight: 600; }
     .faltas-warning { color: #f59e0b; font-weight: 600; }
     .faltas-ok { color: #10b981; font-weight: 600; }
+    
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(-100%);
+      }
+    }
+    
+    .banner-install {
+      animation: slideDown 0.5s ease forwards;
+    }
+    
+    .banner-install.hiding {
+      animation: slideUp 0.5s ease forwards;
+    }
   </style>
 </head>
 <body class="overflow-x-hidden">
   
-  <!-- INSTALL PWA -->
+  <!-- INSTALL PWA BANNER -->
   <div id="install-pwa-container" class="fixed top-4 left-0 right-0 flex justify-center pointer-events-none hidden z-[9999]">
-    <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-4 flex items-center gap-3 pointer-events-auto max-w-md mx-4">
+    <div class="banner-install bg-white rounded-xl shadow-lg border border-gray-200 p-4 flex items-center gap-3 pointer-events-auto max-w-md mx-4">
       <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
         <i class="fa-solid fa-download"></i>
       </div>
@@ -433,7 +452,7 @@
   <div class="lg:ml-64 min-h-screen flex flex-col" id="main-content">
     
     <!-- Header -->
-    <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-sm border-b border-gray-200 px-4 py-3 sm:px-6 flex items-center justify-between">
+  <header class="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 py-3 sm:px-6 flex items-center justify-between shadow-sm">
       <div class="flex items-center gap-3">
         <button class="lg:hidden text-gray-500 hover:text-gray-700" id="menu-btn">
           <i class="fa-solid fa-bars text-xl"></i>
@@ -442,20 +461,26 @@
       </div>
       
       <div class="flex items-center gap-2">
-        <!-- Sync Button -->
+        <!-- Notificação Button -->
+        <button id="notificacao-btn" class="action-btn text-gray-500 hover:text-blue-600 transition-colors relative" title="Notificações">
+          <i class="fa-regular fa-bell text-lg"></i>
+          <span id="notificacao-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center hidden">0</span>
+        </button>
+
+        <!-- Sync Button - Visível em mobile e desktop -->
         <button id="sync-now-btn" class="action-btn sync" title="Sincronizar">
           <i class="fa-solid fa-rotate-right"></i>
+        </button>
+
+        <!-- Logout Button - Visível em mobile e desktop -->
+        <button id="logout-btn" class="action-btn delete" title="Sair">
+          <i class="fa-solid fa-arrow-right-from-bracket"></i>
         </button>
         
         <!-- Add Button -->
         <button class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2" id="btn-add">
           <i class="fa-solid fa-plus"></i>
           <span class="hidden sm:inline">Adicionar</span>
-        </button>
-        
-        <!-- Logout Button -->
-        <button id="logout-btn" class="action-btn delete hidden lg:flex" title="Sair">
-          <i class="fa-solid fa-arrow-right-from-bracket"></i>
         </button>
       </div>
     </header>
@@ -469,8 +494,7 @@
     </div>
 
     <!-- Main Content Area -->
-    <main class="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full" id="content-area">
-      
+    <main class="flex-1 p-4 sm:p-6 max-w-7xl mx-auto w-full pt-16" id="content-area">      
       <!-- DASHBOARD -->
       <section class="page-section space-y-6" id="page-dashboard">
         <!-- Stats Cards -->
@@ -566,6 +590,9 @@
             </div>
           </div>
         </div>
+      </br>
+      </br>
+      </br>
       </section>
 
       <!-- AGENDA -->
@@ -668,9 +695,6 @@
     <button class="w-12 h-12 bg-blue-600 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-blue-700 transition-colors" id="mobile-data-btn" title="Gerenciar dados">
       <i class="fa-solid fa-database"></i>
     </button>
-    <button id="notificacao-btn" class="w-12 h-12 bg-indigo-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-indigo-600 transition-colors" title="Notificações">
-      <i class="fa-regular fa-bell"></i>
-    </button>
   </div>
 
   <!-- MODALS -->
@@ -712,14 +736,22 @@
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="/js/config.js"></script>
-  <script src="/js/services/auth.js"></script>
-  <script src="/js/services/data.js"></script>
-  <script src="/js/app.js"></script>
-  
+<!-- Scripts -->
+<script src="/js/config.js"></script>
+<script src="/js/services/auth.js"></script>
+<script src="/js/services/data.js"></script>
+<script src="/js/services/notificacao.js"></script>
+<script src="/js/notificacao-ui.js"></script>
+<script src="/js/app.js"></script>
   <script>
-    // Loader
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .catch(err => console.log('❌ Erro:', err));
+    });
+  }
+</script>
+  <script>
     window.addEventListener('load', () => {
       setTimeout(() => {
         const loader = document.getElementById('loader');
@@ -730,29 +762,110 @@
       }, 1500);
     });
 
-    // Service Worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(console.log);
     }
 
-    // PWA Install
     let deferredPrompt;
+    let installTimeout;
     const installContainer = document.getElementById('install-pwa-container');
     const installBtn = document.getElementById('install-pwa-btn');
     const closeBtn = document.getElementById('close-install-btn');
-    
-    setTimeout(() => {
-      if (!window.matchMedia('(display-mode: standalone)').matches && installContainer) {
-        installContainer.classList.remove('hidden');
+
+    const INSTALL_BANNER_KEY = 'uniahora_install_banner_hidden';
+    const INSTALLED_KEY = 'uniahora_installed';
+    const SESSION_BANNER_KEY = 'uniahora_banner_shown_session';
+
+    function isMobile() {
+      return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    function isPWAInstalled() {
+      return window.matchMedia('(display-mode: standalone)').matches || 
+             window.matchMedia('(display-mode: fullscreen)').matches ||
+             window.matchMedia('(display-mode: minimal-ui)').matches ||
+             navigator.standalone === true;
+    }
+
+    function isPageReload() {
+      const navigationEntries = performance.getEntriesByType('navigation');
+      
+      if (navigationEntries.length > 0) {
+        return navigationEntries[0].type === 'reload';
       }
-    }, 2000);
-    
+      
+      const lastLoad = sessionStorage.getItem('last_page_load');
+      const now = Date.now();
+      
+      if (lastLoad) {
+        const timeDiff = now - parseInt(lastLoad);
+        sessionStorage.setItem('last_page_load', now.toString());
+        return timeDiff < 2000;
+      } else {
+        sessionStorage.setItem('last_page_load', now.toString());
+        return false;
+      }
+    }
+
+    function shouldShowBanner() {
+      if (isPWAInstalled() || localStorage.getItem(INSTALLED_KEY) === 'true') {
+        return false;
+      }
+      
+      if (!isMobile()) {
+        return false;
+      }
+      
+      if (sessionStorage.getItem(SESSION_BANNER_KEY) === 'true') {
+        return false;
+      }
+      
+      if (localStorage.getItem(INSTALL_BANNER_KEY) === 'true') {
+        return false;
+      }
+      
+      return isPageReload();
+    }
+
+    function showInstallBanner() {
+      if (!installContainer || !installContainer.classList.contains('hidden')) return;
+      
+      installContainer.classList.remove('hidden');
+      
+      sessionStorage.setItem(SESSION_BANNER_KEY, 'true');
+      
+      if (installTimeout) clearTimeout(installTimeout);
+      installTimeout = setTimeout(() => {
+        hideInstallBanner();
+      }, 8000);
+    }
+
+    function hideInstallBanner() {
+      const banner = installContainer?.querySelector('.banner-install');
+      if (banner) {
+        banner.classList.add('hiding');
+        setTimeout(() => {
+          installContainer.classList.add('hidden');
+          banner.classList.remove('hiding');
+        }, 500);
+      } else {
+        installContainer.classList.add('hidden');
+      }
+    }
+
+    setTimeout(() => {
+      if (shouldShowBanner()) {
+        showInstallBanner();
+      }
+    }, 2500);
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
-      if (installContainer && !window.matchMedia('(display-mode: standalone)').matches) {
-        installContainer.classList.remove('hidden');
-      }
+    });
+
+    closeBtn?.addEventListener('click', () => {
+      hideInstallBanner();
+      localStorage.setItem(INSTALL_BANNER_KEY, 'true');
     });
 
     installBtn?.addEventListener('click', async () => {
@@ -761,25 +874,22 @@
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
           deferredPrompt = null;
-          installContainer.classList.add('hidden');
+          localStorage.setItem(INSTALLED_KEY, 'true');
+          localStorage.removeItem(INSTALL_BANNER_KEY);
+          hideInstallBanner();
         }
+      } else {
+        alert('Para instalar, use o menu do navegador: "Adicionar à tela inicial"');
       }
-    });
-
-    closeBtn?.addEventListener('click', () => {
-      installContainer.classList.add('hidden');
     });
 
     window.addEventListener('appinstalled', () => {
       deferredPrompt = null;
-      installContainer.classList.add('hidden');
+      localStorage.setItem(INSTALLED_KEY, 'true');
+      localStorage.removeItem(INSTALL_BANNER_KEY);
+      hideInstallBanner();
     });
 
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      installContainer.classList.add('hidden');
-    }
-
-    // Connection Status
     function updateConnectionStatus() {
       const statusDiv = document.getElementById('connection-status');
       if (statusDiv) {

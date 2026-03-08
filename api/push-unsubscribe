@@ -1,0 +1,77 @@
+// api/push-unsubscribe.js
+import { createClient } from '@supabase/supabase-js';
+
+// Inicializar Supabase com service role
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+export default async function handler(req, res) {
+  // Configurar CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'DELETE, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  // Aceitar tanto DELETE quanto POST (para compatibilidade)
+  if (req.method !== 'DELETE' && req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método não permitido' });
+  }
+
+  // Pegar token do usuário do header Authorization
+  const token = req.headers.authorization?.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ error: 'Não autorizado' });
+  }
+
+  try {
+    // Verificar token e pegar user_id
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+
+    const userId = user.id;
+    const { endpoint, deviceId } = req.body;
+
+    if (!endpoint && !deviceId) {
+      return res.status(400).json({ error: 'É necessário fornecer endpoint ou deviceId' });
+    }
+
+    let query = supabase
+      .from('push_subscriptions')
+      .delete()
+      .eq('user_id', userId);
+
+    // Filtrar por endpoint ou deviceId
+    if (endpoint) {
+      query = query.eq('subscription->>endpoint', endpoint);
+    } else if (deviceId) {
+      query = query.eq('device_id', deviceId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Erro ao remover inscrição:', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    console.log(`📱 Dispositivo removido: ${deviceId || endpoint}`);
+
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Inscrição removida com sucesso',
+      removed: data?.length || 0
+    });
+
+  } catch (error) {
+    console.error('❌ Erro no push-unsubscribe:', error);
+    return res.status(500).json({ error: error.message });
+  }
+}

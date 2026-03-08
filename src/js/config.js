@@ -1,4 +1,3 @@
-// config.js
 window.appConfig = {
   supabase: {
     url: 'https://dkjymeggfmeueixupzmo.supabase.co',
@@ -6,4 +5,4 @@ window.appConfig = {
   }
 };
 
-console.log('✅ Configurações carregadas');
+// console.log('✅ Configurações carregadas');

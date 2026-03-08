@@ -5,7 +5,15 @@
       "use": "@vercel/static"
     },
     {
-      "src": "src/**",
+      "src": "src/**/*.html",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "src/**/*.js",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "src/**/*.css",
       "use": "@vercel/static"
     }
   ],
@@ -13,6 +21,10 @@
     {
       "src": "/",
       "dest": "/src/index.html"
+    },
+    {
+      "src": "/site.webmanifest",
+      "dest": "/public/site.webmanifest"
     },
     {
       "src": "/login",

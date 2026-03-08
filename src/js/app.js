@@ -31,7 +31,7 @@ const DIAS_SEMANA = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta'
 // =============================================
 window.debugFunctions = {
   check: function() {
-    console.group('🔍 Verificação de Funções Globais');
+    // console.group('🔍 Verificação de Funções Globais');
     const funcoes = [
       'editarMateria', 'excluirMateria', 'adicionarFalta', 'removerFalta',
       'editarEvento', 'excluirEvento', 'editarTarefa', 'excluirTarefa',
@@ -41,9 +41,9 @@ window.debugFunctions = {
     
     funcoes.forEach(nome => {
       const status = typeof window[nome] === 'function' ? '✅' : '❌';
-      console.log(`${status} ${nome}:`, typeof window[nome]);
+      // console.log(`${status} ${nome}:`, typeof window[nome]);
     });
-    console.groupEnd();
+    // console.groupEnd();
   }
 };
 
@@ -205,7 +205,7 @@ const toast = (mensagem, tipo = 'success') => {
 // =============================================
 async function checkAuth() {
   if (!window.auth) {
-    console.log('⛔ Auth não disponível');
+    // console.log('⛔ Auth não disponível');
     window.location.href = '/login';
     return false;
   }
@@ -213,7 +213,7 @@ async function checkAuth() {
   await window.auth.ensureInitialized();
   
   if (!window.auth.isAuthenticated()) {
-    console.log('⛔ Usuário não autenticado');
+    // console.log('⛔ Usuário não autenticado');
     window.location.href = '/login';
     return false;
   }
@@ -274,7 +274,7 @@ function getStatusFaltas(materiaId) {
 // =============================================
 
 function navigateTo(pagina) {
-  console.log('Navegando para:', pagina);
+  // console.log('Navegando para:', pagina);
   paginaAtual = pagina;
 
   $$('.page-section').forEach(section => {
@@ -337,7 +337,7 @@ function navigateTo(pagina) {
 
 function renderPagina(pagina) {
   if (!document.getElementById(`page-${pagina}`)) {
-    console.warn(`Seção page-${pagina} não encontrada`);
+    // console.warn(`Seção page-${pagina} não encontrada`);
     return;
   }
 
@@ -356,7 +356,7 @@ function renderPagina(pagina) {
 }
 
 // =============================================
-// FUNÇÕES DE RENDERIZAÇÃO ATUALIZADAS
+// FUNÇÕES DE RENDERIZAÇÃO
 // =============================================
 function renderDashboard() {
   const statEventos = $('#stat-eventos');
@@ -810,7 +810,7 @@ function renderHorarios() {
 // =============================================
 
 function editarMateria(id) {
-  console.log('📝 Editando matéria:', id);
+  // console.log('📝 Editando matéria:', id);
   const materia = DB.materias?.find(m => m.id === id);
   if (materia) {
     itemEditandoId = id;
@@ -896,7 +896,7 @@ async function removerFalta(materiaId) {
 // =============================================
 
 function editarEvento(id) {
-  console.log('📝 Editando evento:', id);
+  // console.log('📝 Editando evento:', id);
   const evento = DB.eventos?.find(e => e.id === id);
   if (evento) {
     itemEditandoId = id;
@@ -971,7 +971,7 @@ async function excluirEvento(id) {
 // =============================================
 
 function editarTarefa(id) {
-  console.log('📝 Editando tarefa:', id);
+  // console.log('📝 Editando tarefa:', id);
   const tarefa = DB.tarefas?.find(t => t.id === id);
   if (tarefa) {
     itemEditandoId = id;
@@ -1062,7 +1062,7 @@ async function toggleTarefa(id) {
 // =============================================
 
 function editarNota(id) {
-  console.log('📝 Editando nota:', id);
+  // console.log('📝 Editando nota:', id);
   const nota = DB.notas?.find(n => n.id === id);
   if (nota) {
     itemEditandoId = id;
@@ -1117,7 +1117,7 @@ async function excluirNota(id) {
 // =============================================
 
 function editarHorario(id) {
-  console.log('📝 Editando horário:', id);
+  // console.log('📝 Editando horário:', id);
   const horario = DB.horarios?.find(h => h.id === id);
   if (horario) {
     itemEditandoId = id;
@@ -1595,21 +1595,30 @@ function exportarArquivo() {
 // =============================================
 // FUNÇÕES DE NOTIFICAÇÃO
 // =============================================
+let jaPediuPermissao = false;
 
 async function solicitarPermissaoNotificacoes() {
   if (!('Notification' in window)) {
-    console.log('Este navegador não suporta notificações');
+    // console.log('Este navegador não suporta notificações');
     return false;
   }
 
   if (Notification.permission === 'granted') {
     notificationPermission = true;
+    atualizarIconeNotificacao(true);
     return true;
   }
 
-  if (Notification.permission !== 'denied') {
+  if (Notification.permission === 'denied') {
+    atualizarIconeNotificacao(false);
+    return false;
+  }
+
+  if (!jaPediuPermissao) {
+    jaPediuPermissao = true;
     const permission = await Notification.requestPermission();
     notificationPermission = permission === 'granted';
+    atualizarIconeNotificacao(notificationPermission);
     return notificationPermission;
   }
 
@@ -1621,9 +1630,28 @@ function verificarPermissaoNotificacoes() {
   return Notification.permission === 'granted';
 }
 
+function atualizarIconeNotificacao(ativado) {
+  const notificacaoBtn = document.getElementById('notificacao-btn');
+  if (!notificacaoBtn) return;
+
+  if (ativado) {
+    notificacaoBtn.classList.remove('text-gray-500', 'bg-indigo-500');
+    notificacaoBtn.classList.add('text-green-600', 'bg-green-50');
+    notificacaoBtn.title = 'Notificações ativas';
+    
+    if (window.notificacaoUI) {
+      window.notificacaoUI.atualizarBadge();
+    }
+  } else {
+    notificacaoBtn.classList.remove('text-green-600', 'bg-green-50');
+    notificacaoBtn.classList.add('text-gray-500');
+    notificacaoBtn.title = 'Clique para ativar notificações';
+  }
+}
+
 function mostrarNotificacao(titulo, options = {}) {
   if (!verificarPermissaoNotificacoes()) {
-    console.log('Sem permissão para notificações');
+    // console.log('Sem permissão para notificações');
     return false;
   }
 
@@ -1769,7 +1797,7 @@ function updateConnectionStatus() {
 }
 
 function handleAddButton() {
-  console.log('Botão Adicionar clicado - Página atual:', paginaAtual);
+  // console.log('Botão Adicionar clicado - Página atual:', paginaAtual);
   
   switch(paginaAtual) {
     case 'materias':
@@ -1861,38 +1889,45 @@ function setupEventListeners() {
     }
   });
 
-  // Botão de sync manual
   $('#sync-now-btn')?.addEventListener('click', async () => {
-    ToastManager.info('Sincronizando', 'Aguarde...');
     await window.data?.syncAll();
   });
 
   const notificacaoBtn = $('#notificacao-btn');
   if (notificacaoBtn) {
     if (verificarPermissaoNotificacoes()) {
-      notificacaoBtn.classList.remove('bg-indigo-500');
-      notificacaoBtn.classList.add('bg-green-500');
-      notificacaoBtn.title = 'Notificações ativas';
+      atualizarIconeNotificacao(true);
+    } else {
+      atualizarIconeNotificacao(false);
     }
     
     notificacaoBtn.addEventListener('click', async () => {
+      if (verificarPermissaoNotificacoes()) {
+        if (window.notificacaoUI) {
+          window.notificacaoUI.mostrarStatus();
+        } else {
+          ToastManager.info('Notificações', 'Notificações já estão ativas');
+        }
+        return;
+      }
+      
       const granted = await solicitarPermissaoNotificacoes();
       if (granted) {
-        notificacaoBtn.classList.remove('bg-indigo-500');
-        notificacaoBtn.classList.add('bg-green-500');
+        atualizarIconeNotificacao(true);
         reagendarTodasNotificacoes();
-        ToastManager.success('Notificações ativadas!', 'Você receberá lembretes dos eventos');
+        ToastManager.success('✅ Notificações ativadas!', 'Você receberá lembretes dos eventos');
       } else {
-        ToastManager.error('Permissão negada', 'Ative manualmente nas configurações');
+        atualizarIconeNotificacao(false);
+        if (Notification.permission === 'denied') {
+          ToastManager.error('❌ Permissão negada', 'Ative manualmente nas configurações do navegador');
+        }
       }
     });
   }
 
-  // Logout
   document.getElementById('logout-btn')?.addEventListener('click', () => window.auth?.logout());
 }
 
-// Função para limpar dados inválidos do localStorage
 function limparDadosInvalidos() {
   try {
     const saved = localStorage.getItem('uniagenda_db');
@@ -1900,38 +1935,38 @@ function limparDadosInvalidos() {
       const dados = JSON.parse(saved);
       let modificado = false;
       
-      // Regex para UUID válido
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-      
-      // Para cada tabela, filtrar apenas UUIDs válidos
       const tabelas = ['materias', 'eventos', 'tarefas', 'notas', 'horarios'];
+      
       tabelas.forEach(tabela => {
         if (dados[tabela] && Array.isArray(dados[tabela])) {
           const originalLength = dados[tabela].length;
           dados[tabela] = dados[tabela].filter(item => uuidRegex.test(item.id));
           if (dados[tabela].length !== originalLength) {
             modificado = true;
-            console.log(`🧹 Removidos ${originalLength - dados[tabela].length} itens inválidos de ${tabela}`);
+            // console.log(`🧹 Removidos ${originalLength - dados[tabela].length} itens inválidos de ${tabela}`);
           }
         }
       });
       
       if (modificado) {
         localStorage.setItem('uniagenda_db', JSON.stringify(dados));
-        console.log('✅ Dados inválidos removidos do localStorage');
+        // console.log('✅ Dados inválidos removidos do localStorage');
       }
     }
   } catch (e) {
-    console.error('Erro ao limpar dados inválidos:', e);
+    // console.error('Erro ao limpar dados inválidos:', e);
   }
 }
+
 async function init() {
-  console.log('🎓 Inicializando UniAgenda...');
+  // console.log('🎓 Inicializando UniAgenda...');
+  
   limparDadosInvalidos();
+  
   const isAuth = await checkAuth();
   if (!isAuth) return;
   
-  // Inicializar APENAS o DataService (que já faz tudo)
   if (window.data) {
     await window.data.init();
     DB = window.data.getDB();
@@ -1940,13 +1975,13 @@ async function init() {
   setupEventListeners();
   
   window.addEventListener('online', () => {
-    ToastManager.info('Conexão restabelecida', 'Sincronizando dados...');
-    window.data?.syncAll();
+    ToastManager.info('📶 Online', 'Sincronizando dados...');
+    setTimeout(() => window.data?.syncAll(), 2000);
     updateConnectionStatus();
   });
   
   window.addEventListener('offline', () => {
-    ToastManager.warning('Modo offline', 'As alterações serão sincronizadas quando voltar');
+    ToastManager.warning('📴 Offline', 'As alterações serão sincronizadas quando voltar');
     updateConnectionStatus();
   });
   
@@ -1956,9 +1991,8 @@ async function init() {
     navigateTo('dashboard');
   }
   
-  console.log('✅ UniAgenda inicializado!');
+  // console.log('✅ UniAgenda inicializado!');
   
-  // Verificar funções globais
   setTimeout(() => window.debugFunctions?.check(), 1000);
 }
 
@@ -1994,11 +2028,3 @@ window.fecharModalImportExport = fecharModalImportExport;
 window.solicitarPermissaoNotificacoes = solicitarPermissaoNotificacoes;
 window.mostrarNotificacao = mostrarNotificacao;
 window.reagendarTodasNotificacoes = reagendarTodasNotificacoes;
-
-// Garantir que as funções estão disponíveis globalmente
-window.addEventListener('DOMContentLoaded', () => {
-  console.log('✅ Verificação de funções:');
-  console.log('   editarMateria:', typeof window.editarMateria);
-  console.log('   excluirMateria:', typeof window.excluirMateria);
-  console.log('   adicionarFalta:', typeof window.adicionarFalta);
-});

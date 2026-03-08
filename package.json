@@ -26,6 +26,7 @@
   "homepage": "https://github.com/cxrphly/uni.agenda#readme",
   "dependencies": {
     "@clerk/clerk-js": "^6.0.0",
-    "@supabase/supabase-js": "^2.98.0"
+    "@supabase/supabase-js": "^2.98.0",
+    "web-push": "^3.6.7"
   }
 }
