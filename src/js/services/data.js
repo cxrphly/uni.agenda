@@ -12,21 +12,17 @@
       this.initialized = false;
     }
 
-
     async init() {
       if (this.initialized) return;
 
       try {
-        
         this.loadFromLocalStorage();
         
-        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.39.0');
-        this.supabase = createClient(
-          window.appConfig.supabase.url,
-          window.appConfig.supabase.anonKey
-        );
+        // Não criar cliente Supabase aqui - vamos usar o do auth.js
+        // O cliente será acessado via window.auth.supabase quando necessário
         
         if (window.auth?.isAuthenticated()) {
+          console.log('✅ Usuário autenticado, usando cliente do auth');
         }
         
         this.initialized = true;
@@ -35,7 +31,15 @@
       }
     }
 
-  
+    // Método auxiliar para pegar o cliente Supabase com token
+    _getSupabaseClient() {
+      if (!window.auth?.supabase) {
+        console.error('❌ Cliente Supabase não disponível no auth');
+        return null;
+      }
+      return window.auth.supabase;
+    }
+
     loadFromLocalStorage() {
       const saved = localStorage.getItem('uniagenda_db');
       if (saved) {
@@ -51,9 +55,9 @@
       localStorage.setItem('uniagenda_db', JSON.stringify(this.localDB));
     }
 
-
     async pullFromServer(isFirstLoad = false) {
-      if (!this.supabase || !window.auth?.isAuthenticated()) return;
+      const supabase = this._getSupabaseClient();
+      if (!supabase || !window.auth?.isAuthenticated()) return;
 
       try {
         const userId = window.auth.getUserId();
@@ -63,7 +67,7 @@
         let alteracoes = false;
         
         for (const tabela of tabelas) {
-          const { data: serverItems, error } = await this.supabase
+          const { data: serverItems, error } = await supabase
             .from(tabela)
             .select('*')
             .eq('user_id', userId);
@@ -114,12 +118,49 @@
               
               if (serverTime > localTime) {
                 console.log(`📝 ${tabela}: Atualizando ${id} (servidor mais recente)`);
-                localItem.nome = serverItem.nome;
-                localItem.professor = serverItem.professor;
-                localItem.sala = serverItem.sala;
-                localItem.max_faltas = serverItem.max_faltas;
-                localItem.faltas = serverItem.faltas;
-                localItem.cor = serverItem.cor;
+                // Atualizar campos específicos por tabela
+                switch(tabela) {
+                  case 'materias':
+                    localItem.nome = serverItem.nome;
+                    localItem.professor = serverItem.professor;
+                    localItem.sala = serverItem.sala;
+                    localItem.max_faltas = serverItem.max_faltas;
+                    localItem.faltas = serverItem.faltas;
+                    localItem.cor = serverItem.cor;
+                    break;
+                  case 'eventos':
+                    localItem.titulo = serverItem.titulo;
+                    localItem.tipo = serverItem.tipo;
+                    localItem.materia_id = serverItem.materia_id;
+                    localItem.data = serverItem.data;
+                    localItem.hora = serverItem.hora;
+                    localItem.descricao = serverItem.descricao;
+                    localItem.notificar = serverItem.notificar;
+                    localItem.notificar_minutos = serverItem.notificar_minutos;
+                    localItem.concluido = serverItem.concluido;
+                    break;
+                  case 'tarefas':
+                    localItem.titulo = serverItem.titulo;
+                    localItem.prioridade = serverItem.prioridade;
+                    localItem.materia_id = serverItem.materia_id;
+                    localItem.prazo = serverItem.prazo;
+                    localItem.concluida = serverItem.concluida;
+                    localItem.notificar = serverItem.notificar;
+                    localItem.notificar_minutos = serverItem.notificar_minutos;
+                    break;
+                  case 'notas':
+                    localItem.titulo = serverItem.titulo;
+                    localItem.conteudo = serverItem.conteudo;
+                    localItem.materia_id = serverItem.materia_id;
+                    localItem.cor = serverItem.cor;
+                    break;
+                  case 'horarios':
+                    localItem.materia_id = serverItem.materia_id;
+                    localItem.dia_semana = serverItem.dia_semana;
+                    localItem.hora_inicio = serverItem.hora_inicio;
+                    localItem.hora_fim = serverItem.hora_fim;
+                    break;
+                }
                 localItem.updated_at = serverItem.updated_at;
                 alteracoes = true;
               }
@@ -154,7 +195,12 @@
     }
 
     async pushToSupabase(tabela, item) {
-      if (!this.supabase || !window.auth?.isAuthenticated()) return false;
+      // USAR O CLIENTE DO AUTH, que já tem o token do usuário
+      const supabase = this._getSupabaseClient();
+      if (!supabase || !window.auth?.isAuthenticated()) {
+        console.error('❌ Cliente Supabase não disponível ou usuário não logado');
+        return false;
+      }
 
       try {
         const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -250,7 +296,7 @@
             itemToSend = baseItem;
         }
         
-        const { data, error } = await this.supabase
+        const { data, error } = await supabase
           .from(tabela)
           .upsert(itemToSend, { onConflict: 'id' })
           .select();
@@ -330,9 +376,10 @@
       this.localDB[tabela] = this.localDB[tabela].filter(i => i.id !== id);
       this.saveToLocalStorage();
 
-      if (navigator.onLine && this.supabase) {
+      const supabase = this._getSupabaseClient();
+      if (navigator.onLine && supabase) {
         try {
-          const { error } = await this.supabase
+          const { error } = await supabase
             .from(tabela)
             .delete()
             .eq('id', id)
@@ -369,7 +416,6 @@
       }
     }
 
-
     async syncAll() {
       if (!navigator.onLine || !window.auth?.isAuthenticated()) {
         this._mostrarToast('Offline ou não logado', 'error');
@@ -383,6 +429,11 @@
         let enviados = 0;
         let pendentes = 0;
         
+        const supabase = this._getSupabaseClient();
+        if (!supabase) {
+          throw new Error('Cliente Supabase não disponível');
+        }
+        
         for (const [tabela, items] of Object.entries(this.localDB)) {
           for (const item of items) {
             if (item.sync_status === 'pending' || item.sync_status === 'pending_delete') {
@@ -390,7 +441,7 @@
               
               if (item.deleted) {
                 try {
-                  await this.supabase
+                  await supabase
                     .from(tabela)
                     .delete()
                     .eq('id', item.id)
@@ -432,7 +483,6 @@
       }
     }
 
-
     getDB() {
       return this.localDB;
     }
@@ -443,11 +493,82 @@
     }
 
     async importFromJSON(jsonData) {
-      this.localDB = jsonData;
-      this.saveToLocalStorage();
-      
-      if (navigator.onLine && window.auth?.isAuthenticated()) {
-        await this.syncAll();
+      try {
+        console.log('📥 Iniciando importação...', jsonData);
+        
+        // Validar estrutura básica
+        if (!jsonData || typeof jsonData !== 'object') {
+          throw new Error('Arquivo JSON inválido');
+        }
+        
+        const userId = window.auth?.getUserId();
+        console.log('👤 User ID:', userId);
+        
+        if (!userId) {
+          throw new Error('Usuário não está logado');
+        }
+        
+        // Estrutura esperada das tabelas
+        const tabelasEsperadas = ['materias', 'eventos', 'tarefas', 'notas', 'horarios'];
+        let dadosImportados = {};
+        
+        // Para cada tabela esperada
+        for (const tabela of tabelasEsperadas) {
+          if (jsonData[tabela] && Array.isArray(jsonData[tabela])) {
+            // Validar cada item da tabela
+            dadosImportados[tabela] = jsonData[tabela].map(item => {
+              // Garantir que o user_id seja do usuário atual
+              item.user_id = userId;
+              
+              // Garantir que tenha sync_status
+              item.sync_status = navigator.onLine ? 'synced' : 'pending';
+              
+              return item;
+            });
+            console.log(`✅ Tabela ${tabela}: ${dadosImportados[tabela].length} itens`);
+          } else {
+            dadosImportados[tabela] = [];
+            console.log(`⚠️ Tabela ${tabela}: vazia ou inválida`);
+          }
+        }
+        
+        // ATUALIZAR O BANCO LOCAL
+        this.localDB = dadosImportados;
+        
+        // SALVAR NO LOCALSTORAGE
+        this.saveToLocalStorage();
+        
+        console.log('💾 Dados salvos no localStorage:', this.localDB);
+        
+        // Verificar se salvou
+        const saved = localStorage.getItem('uniagenda_db');
+        console.log('📦 localStorage após salvar:', JSON.parse(saved));
+        
+        // Sincronizar com servidor se estiver online
+        if (navigator.onLine && userId) {
+          console.log('🔄 Iniciando sincronização com servidor...');
+          this._mostrarToast('Sincronizando com servidor...', 'info');
+          
+          // Enviar cada item para o Supabase
+          for (const tabela of tabelasEsperadas) {
+            for (const item of dadosImportados[tabela]) {
+              await this.pushToSupabase(tabela, item);
+            }
+          }
+        }
+        
+        // Atualizar a interface
+        if (window.renderPagina && window.paginaAtual) {
+          window.renderPagina(window.paginaAtual);
+        }
+        
+        this._mostrarToast('✅ Dados importados com sucesso!', 'success');
+        return true;
+        
+      } catch (error) {
+        console.error('❌ Erro na importação:', error);
+        this._mostrarToast('Erro ao importar dados: ' + error.message, 'error');
+        return false;
       }
     }
 
