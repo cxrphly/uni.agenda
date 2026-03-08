@@ -720,14 +720,23 @@ function renderMaterias() {
 }
 
 function renderHorarios() {
-  const gradeHorarios = $('#grade-horarios');
+  console.log('🎯 renderHorarios iniciada');
+  console.log('📊 DB.horarios:', DB.horarios);
   
-  if (!gradeHorarios) return;
+  const gradeHorarios = document.getElementById('grade-horarios');
+  
+  if (!gradeHorarios) {
+    console.error('❌ Elemento grade-horarios NÃO encontrado!');
+    return;
+  }
 
   if (!DB.horarios || DB.horarios.length === 0) {
+    console.log('⚠️ Sem horários para renderizar');
     gradeHorarios.innerHTML = '<div class="p-12 text-center text-gray-400 text-sm">Nenhum horário cadastrado</div>';
     return;
   }
+
+  console.log('✅ Renderizando', DB.horarios.length, 'horários');
 
   const dias = [
     { id: 1, nome: 'SEG' },
@@ -738,6 +747,7 @@ function renderHorarios() {
     { id: 6, nome: 'SÁB' }
   ];
   
+  // Gerar horas de 7 às 22
   const horarios = [];
   for (let h = 7; h <= 22; h++) {
     horarios.push(`${h.toString().padStart(2, '0')}:00`);
@@ -757,15 +767,25 @@ function renderHorarios() {
         <tbody>
   `;
 
+  // Mapear horários por dia para facilitar
+  const horariosPorDia = {};
+  DB.horarios.forEach(h => {
+    if (!horariosPorDia[h.dia_semana]) {
+      horariosPorDia[h.dia_semana] = [];
+    }
+    horariosPorDia[h.dia_semana].push(h);
+  });
+
   for (let i = 0; i < horarios.length; i++) {
-    const hora = horarios[i];
+    const horaAtual = horarios[i];
     let linha = `<tr class="hover:bg-gray-50/50">`;
-    linha += `<td class="p-2 text-xs text-gray-400 border-b border-gray-100 text-center">${hora}</td>`;
+    linha += `<td class="p-2 text-xs text-gray-400 border-b border-gray-100 text-center">${horaAtual}</td>`;
     
     dias.forEach(dia => {
+      // 🔥 CORREÇÃO: Comparar apenas os primeiros 5 caracteres da hora
       const aula = DB.horarios.find(h => 
         h.dia_semana === dia.id && 
-        h.hora_inicio === hora
+        h.hora_inicio.substring(0, 5) === horaAtual
       );
 
       if (aula) {
@@ -773,22 +793,36 @@ function renderHorarios() {
         const horaFim = parseInt(aula.hora_fim.split(':')[0]);
         const rowspan = horaFim - horaInicio;
         
-        linha += `
-          <td class="border-b border-gray-100 p-1 relative" rowspan="${rowspan}">
-            <div class="bg-blue-50 text-blue-700 p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-blue-100 transition-colors relative group"
-                 style="border-left: 3px solid ${getMateriaCor(aula.materia_id)}"
-                 onclick="editarHorario('${aula.id}')">
-              <div>${getMateriaNome(aula.materia_id)}</div>
-              <div class="text-[10px] opacity-75 mt-1">${aula.hora_inicio} - ${aula.hora_fim}</div>
-              <button class="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center shadow-sm"
-                      onclick="excluirHorario('${aula.id}'); event.stopPropagation();" title="Excluir">
-                <i class="fa-solid fa-times"></i>
-              </button>
-            </div>
-          </td>
-        `;
+        // Se não for a primeira linha do horário, não renderiza (por causa do rowspan)
+        if (horaAtual === aula.hora_inicio.substring(0, 5)) {
+          linha += `
+            <td class="border-b border-gray-100 p-1 relative" rowspan="${rowspan}">
+              <div class="bg-blue-50 text-blue-700 p-2 rounded-lg text-xs font-medium cursor-pointer hover:bg-blue-100 transition-colors relative group"
+                   style="border-left: 3px solid ${getMateriaCor(aula.materia_id)}"
+                   onclick="editarHorario('${aula.id}')">
+                <div>${getMateriaNome(aula.materia_id)}</div>
+                <div class="text-[10px] opacity-75 mt-1">${aula.hora_inicio.substring(0, 5)} - ${aula.hora_fim.substring(0, 5)}</div>
+                <button class="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center shadow-sm"
+                        onclick="excluirHorario('${aula.id}'); event.stopPropagation();" title="Excluir">
+                  <i class="fa-solid fa-times"></i>
+                </button>
+              </div>
+            </td>
+          `;
+        }
+        // Se não for a primeira linha, não adiciona célula (por causa do rowspan)
       } else {
-        linha += `<td class="border-b border-gray-100"></td>`;
+        // Verificar se esta linha está dentro do rowspan de alguma aula
+        const aulaAnterior = DB.horarios.find(h => 
+          h.dia_semana === dia.id && 
+          horaAtual > h.hora_inicio.substring(0, 5) && 
+          horaAtual < h.hora_fim.substring(0, 5)
+        );
+        
+        if (!aulaAnterior) {
+          linha += `<td class="border-b border-gray-100"></td>`;
+        }
+        // Se estiver dentro do rowspan, não adiciona célula
       }
     });
     
@@ -803,8 +837,8 @@ function renderHorarios() {
   `;
 
   gradeHorarios.innerHTML = html;
+  console.log('✅ Renderização concluída');
 }
-
 // =============================================
 // FUNÇÕES CRUD - MATÉRIAS
 // =============================================
